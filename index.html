@@ -3,9 +3,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#173F4B">
-<title>판매이익 분석</title>
+<title>판매이익 분석 · 빵을그리다</title>
 <link rel="apple-touch-icon" href="logo_apple.png">
-<link rel="icon" href="logo_192.png">
+<link rel="icon" href="brand_logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* 빵을그리다(주) 판매이익 분석 — 이카운트 「판매현황」 엑셀을 올려 일·주·월·거래처·품목별 매출, 원가, 판매이익을 봅니다.
@@ -30,7 +30,11 @@ b,strong{font-weight:700}
 
 /* frame */
 header.hd{background:var(--brand);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:30}
-header.hd h1{font-size:17px;font-weight:800;letter-spacing:-.2px}
+header.hd h1{font-size:17px;font-weight:800;letter-spacing:-.2px;line-height:1.2}
+header.hd .brand{display:flex;align-items:center;gap:10px}
+header.hd .brand img{width:42px;height:42px;border-radius:10px;background:#fff;object-fit:cover;flex:0 0 auto}
+header.hd .co{font-size:12px;font-weight:700;color:rgba(255,255,255,.78);letter-spacing:.2px}
+@media (max-width:560px){header.hd .brand img{width:36px;height:36px}header.hd .dsum{display:none}}
 header.hd .dsum{font-size:12.5px;color:rgba(255,255,255,.75)}
 header.hd .grow{flex:1}
 .srvpill{border-radius:20px;padding:5px 12px;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.12);color:#fff;white-space:nowrap}
@@ -197,6 +201,7 @@ table.heat td.hv{text-align:right;white-space:nowrap;font-size:12.5px}
 .rp-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .rep{background:#fff;border:1px solid var(--line);border-radius:4px;max-width:800px;margin:0 auto;padding:28px 34px;color:#111}
 .rep .rp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:3px solid var(--brand);padding-bottom:12px;margin-bottom:14px}
+.rep .rp-left{display:flex;align-items:center;gap:12px}.rep .rp-logo{width:58px;height:58px;border-radius:10px;object-fit:cover}
 .rep .rp-co{font-size:12px;color:var(--ink2);font-weight:700}
 .rep h1{font-size:23px;font-weight:800;color:var(--brand);letter-spacing:-.4px;margin:2px 0}
 .rep .rp-per{font-size:13.5px;color:var(--ink2);font-weight:600}
@@ -234,7 +239,7 @@ table.heat td.hv{text-align:right;white-space:nowrap;font-size:12.5px}
 </head>
 <body>
 <header class="hd">
-  <h1>판매이익 분석</h1>
+  <div class="brand"><img src="brand_logo.png" alt="빵그리다 로고" onerror="this.style.display='none'"><div><div class="co">빵을그리다 주식회사</div><h1>판매이익 분석</h1></div></div>
   <span class="dsum" id="hdSum"></span>
   <span class="grow"></span>
   <button class="srvpill off" id="srvPill" data-act="sync">● 구글 시트 연결 안 됨</button>
@@ -967,7 +972,7 @@ function report(type, key, withAll) {
   const title = type === 'week' ? `${a.slice(0, 4)}년 ${weekName(a)} · ${mdw(a)} ~ ${mdw(b)}` : `${moName(key)} · ${md(a)} ~ ${md(b)}`;
   const up = DB.uploads.find(u => u.type === 'sales');
   const html = `<div class="rep" id="rep">
-    <div class="rp-head"><div><div class="rp-co">빵을그리다(주)</div><h1>${type === 'week' ? '주간' : '월간'} 판매이익 보고</h1><div class="rp-per">${esc(title)}</div></div>
+    <div class="rp-head"><div class="rp-left"><img class="rp-logo" src="brand_logo.png" alt="" onerror="this.style.display='none'"><div><div class="rp-co">빵을그리다 주식회사</div><h1>${type === 'week' ? '주간' : '월간'} 판매이익 보고</h1><div class="rp-per">${esc(title)}</div></div></div>
       <table class="sign"><tr><th>담당</th><th>대표이사</th></tr><tr><td></td><td></td></tr></table></div>
     <div class="rk4">
       <div class="rk"><div class="kl">매출 (공급가액)</div><div class="kv">${kor(T.amt)}</div><div class="ks">${dlt(dA)} ${pn} ${kor(P.amt)}</div></div>
