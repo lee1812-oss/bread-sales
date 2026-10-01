@@ -199,40 +199,67 @@ table.heat td.hv{text-align:right;white-space:nowrap;font-size:12.5px}
 
 /* report (A4) */
 .rp-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.rep{background:#fff;border:1px solid var(--line);border-radius:4px;max-width:800px;margin:0 auto;padding:28px 34px;color:#111}
-.rep .rp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:3px solid var(--brand);padding-bottom:12px;margin-bottom:14px}
-.rep .rp-left{display:flex;align-items:center;gap:12px}.rep .rp-logo{width:58px;height:58px;border-radius:10px;object-fit:cover}
+.rep{display:flex;flex-direction:column;align-items:center;gap:14px;overflow-x:auto;padding-bottom:6px}
+.page{width:210mm;min-height:297mm;padding:10mm 11mm 8mm;background:#fff;box-shadow:0 2px 10px rgba(22,35,43,.14);border-radius:2px;color:#111;display:flex;flex-direction:column;flex:0 0 auto;font-size:12px}
+.page .pg-body{flex:1}
+.page .pg-top{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);border-bottom:2px solid var(--brand);padding-bottom:5px;margin-bottom:6px}
+.page .pg-top img{width:22px;height:22px;border-radius:5px}
+.page .pg-top b{color:var(--brand);font-size:12px}
+.page .pg-foot{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--ink3);border-top:1px solid var(--line);padding-top:5px;margin-top:8px}
+.rep .rp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:3px solid var(--brand);padding-bottom:10px;margin-bottom:12px}
+.rep .rp-left{display:flex;align-items:center;gap:12px}.rep .rp-logo{width:56px;height:56px;border-radius:10px;object-fit:cover}
 .rep .rp-co{font-size:12px;color:var(--ink2);font-weight:700}
 .rep h1{font-size:23px;font-weight:800;color:var(--brand);letter-spacing:-.4px;margin:2px 0}
-.rep .rp-per{font-size:13.5px;color:var(--ink2);font-weight:600}
-.rep table.sign{border-collapse:collapse;font-size:12px}
-.rep table.sign th,.rep table.sign td{border:1px solid #9AA6AF;width:64px;text-align:center}
+.rep .rp-per{font-size:13px;color:var(--ink2);font-weight:600}
+.rep table.sign{border-collapse:collapse;font-size:11px}
+.rep table.sign th,.rep table.sign td{border:1px solid #9AA6AF;width:58px;text-align:center}
 .rep table.sign th{background:var(--soft);padding:3px;font-weight:700}
-.rep table.sign td{height:52px}
-.rep .rk4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-.rep .rk{border:1px solid var(--line);border-radius:8px;padding:9px 11px}
-.rep .rk .kl{font-size:11.5px;color:var(--ink2);font-weight:700}
-.rep .rk .kv{font-size:19px;font-weight:800;letter-spacing:-.4px;margin:1px 0}
-.rep .rk .ks{font-size:11.5px;color:var(--ink3)}
+.rep table.sign td{height:48px}
+.rep .rk4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.rep .rk{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.rep .rk .kl{font-size:11px;color:var(--ink2);font-weight:700}
+.rep .rk .kv{font-size:18px;font-weight:800;letter-spacing:-.4px;margin:1px 0;white-space:nowrap}
+.rep .rk .ks{font-size:10.5px;color:var(--ink3)}
 .rep .rk.main{border-color:var(--c-profit);background:#F3F8FE}
-.rep h3{font-size:14.5px;font-weight:800;color:var(--brand);margin:16px 0 7px;padding-left:8px;border-left:4px solid var(--accent)}
-.rep ul.sum{margin:0 0 4px 18px;line-height:1.85;font-size:13.5px}
-.rep table.t{font-size:12.5px}
-.rep table.t th{font-size:11.5px;padding:6px 7px;position:static}
-.rep table.t td{padding:5px 7px}
-.rep .rp-foot{margin-top:18px;font-size:11px;color:var(--ink3);border-top:1px solid var(--line);padding-top:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.rep .tw{border:0;border-radius:0}
-.rep .note{font-size:12px;color:var(--ink2);margin-top:4px}
-.rep .pb{page-break-before:always;break-before:page}
-@media (max-width:640px){.rep{padding:18px 14px}.rep .rk4{grid-template-columns:repeat(2,1fr)}.rep .rp-head{flex-direction:column}}
-@page{size:A4;margin:11mm}
+.rep .rp-sum{background:#F4F7F9;border-left:4px solid var(--brand);border-radius:6px;padding:9px 12px 8px;margin-bottom:4px}
+.rep .rp-sum .st,.rep .memo .st{font-weight:800;color:var(--brand);font-size:12.5px;margin-bottom:3px}
+.rep .rp-sum ol{margin:0 0 0 18px;line-height:1.75;font-size:12.5px}
+.rep h3{font-size:13px;font-weight:800;color:var(--brand);margin:12px 0 5px;padding-left:7px;border-left:4px solid var(--accent);display:flex;align-items:baseline;gap:8px}
+.rep h3 small{font-size:10.5px;color:var(--ink3);font-weight:600}
+.rep .tw{border:0;border-radius:0;overflow:visible}
+.rep table.t{font-size:11.5px}
+.rep table.t th{font-size:10.5px;padding:4px 6px;position:static;cursor:default}
+.rep table.t td{padding:3.5px 6px}
+.rep table.t{width:100%}
+.rep table.t td.nm{max-width:62mm;overflow:hidden;text-overflow:ellipsis}
+.rep .two table.t td.nm{max-width:34mm}
+.rep table.t td.why{min-width:0;font-size:11px}
+.rep table.ctbl td:first-child{white-space:nowrap}
+.rep .more{display:none}
+.rep .rbar{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.rep .rbar i{display:inline-block;height:7px;background:var(--c-profit);border-radius:0 3px 3px 0}
+.rep .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rep .two>div{min-width:0}
+.rep .note{font-size:11.5px;color:var(--ink2);padding:4px 2px}
+.rep .ck6{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.rep .ck{border:1px solid var(--line);border-radius:7px;padding:6px 8px;border-top:4px solid var(--good)}
+.rep .ck.red{border-top-color:var(--c-loss)}.rep .ck.amb{border-top-color:var(--s4)}.rep .ck.grn{border-top-color:var(--s1)}
+.rep .ck .cl{font-size:10.5px;font-weight:700;color:var(--ink2)}.rep .ck .cv{font-size:18px;font-weight:800}.rep .ck .cs{font-size:9.5px;color:var(--ink3)}
+.rep .memo{margin-top:12px;border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.rep .memo .ln{border-bottom:1px solid var(--line2);height:24px}
+.rep .chart text{font-size:10px}
+@media (max-width:820px){.rep{align-items:flex-start}}
+@page{size:A4;margin:10mm}
 @media print{
   body{background:#fff}
   header.hd,nav.tabs,.fbar,.rp-tools,.noprint,#tip,#toast{display:none!important}
   main{padding:0;max-width:none}
-  .rep{border:0;padding:0;max-width:none;margin:0}
-  .rep h3,.rep table tr,.rep .chart{break-inside:avoid}
-  body:not(.printing-rep) main>*{break-inside:auto}
+  .rep{display:block;overflow:visible;padding:0;gap:0}
+  .page{width:auto;height:277mm;min-height:0;padding:0;margin:0;box-shadow:none;border-radius:0;break-after:page;page-break-after:always;overflow:hidden}
+  .page:last-child{break-after:auto;page-break-after:auto}
+  .page.flow{height:auto;overflow:visible;display:block}
+  .page.flow table tr{break-inside:avoid}
+  .page.flow tfoot{display:table-row-group}
+  .chart .hit{fill:transparent!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
@@ -467,7 +494,7 @@ function svgBars(s, W) {
   const mx = niceMax(Math.max(1, ...pts.map(p => Math.max(p.amt, p.cost)))), mn = Math.min(0, ...pts.map(p => Math.min(p.amt, 0)));
   const lo = mn < 0 ? -niceMax(-mn) : 0, y = v => T + ph * (mx - v) / (mx - lo), slot = pw / n, bw = Math.max(2, Math.min(46, slot * .68));
   let g = '';
-  for (let i = 0; i <= 4; i++) { const v = lo + (mx - lo) * i / 4, yy = y(v); g += `<line class="gl" x1="${L}" x2="${W - Rr}" y1="${yy}" y2="${yy}"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end">${short(v)}</text>`; }
+  for (let i = 0; i <= 5; i++) { const v = lo + (mx - lo) * i / 5, yy = y(v); g += `<line class="gl" x1="${L}" x2="${W - Rr}" y1="${yy}" y2="${yy}"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end">${short(v)}</text>`; }
   const every = Math.max(1, Math.ceil(n / Math.max(1, pw / 58))), showLb = s.labels !== false && n <= Math.max(6, pw / 46);
   let bars = '', hits = '';
   pts.forEach((p, i) => {
@@ -938,68 +965,127 @@ function vReport() {
   const ks = repKeys(P.type);
   return `<div class="rp-tools"><div class="seg"><button data-rtype="week" class="${P.type === 'week' ? 'on' : ''}">주간 보고</button><button data-rtype="month" class="${P.type === 'month' ? 'on' : ''}">월간 보고</button></div>
     <select class="f" id="repKey">${ks.map(k => `<option value="${k}"${k === P.key ? ' selected' : ''}>${P.type === 'week' ? `${k.slice(0, 4)}년 ${weekName(k)} (${md(k)}~${md(addD(k, 6))})` : moName(k)}</option>`).join('')}</select>
-    <label class="small row" style="gap:4px"><input type="checkbox" id="repAll"${P.all ? ' checked' : ''}> 거래처 전체 목록 붙이기</label>
+    <select class="f" id="repUnit" aria-label="보고서 금액 단위">${[['won', '원'], ['k', '천원'], ['m', '만원']].map(([v, l]) => `<option value="${v}"${(P.unit || 'k') === v ? ' selected' : ''}>표 단위 ${l}</option>`).join('')}</select>
+    <label class="small row" style="gap:4px"><input type="checkbox" id="repAll"${P.all ? ' checked' : ''}> 부록: 거래처 전체 목록</label>
     <span class="grow" style="flex:1"></span><button class="btn" data-act="repxls">엑셀로 저장</button><button class="btn pri" data-act="print">🖨 인쇄 · PDF 저장</button></div>
     ${report(P.type, P.key, P.all)}`;
 }
+/* ── 보고서: A4 한 장씩 (주간 4쪽 · 월간 5쪽) ──
+   쪽마다 표 길이를 정해 두어 인쇄했을 때 넘치지 않게 합니다. 금액 단위는 보고서 단위(기본 천원). */
+const rtbl = (id, cols, rows, o = {}) => tbl(id, cols.map(c => Object.assign({}, c, { nos: 1 })), rows, o);
+const cut = (s, n = 22) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
 function report(type, key, withAll) {
-  const a = type === 'week' ? key : moStart(key), b = type === 'week' ? addD(key, 6) : moEnd(key), { pa, pb, e } = cmp(a, b), pn = (type === 'week' ? '전주' : '전월') + (e < b ? ' 같은 기간' : '');
+  const keepUnit = UI.unit; UI.unit = UI.rep.unit || 'k';
+  try { return reportBody(type, key, withAll); } finally { UI.unit = keepUnit; }
+}
+function reportBody(type, key, withAll) {
+  const W = type === 'week', a = W ? key : moStart(key), b = W ? addD(key, 6) : moEnd(key), { pa, pb, e } = cmp(a, b), part = e < b;
+  const pn = (W ? '전주' : '전월') + (part ? ' 같은 기간' : ''), cn = W ? '이번 주' : '이번 달';
   const cur = rowsIn(a, b, true), prv = rowsIn(pa, pb, true), T = total(cur), P = total(prv);
-  const yS = a.slice(0, 4) + '-01-01', Y = total(rowsIn(yS, e, true)), PY = total(rowsIn((+a.slice(0, 4) - 1) + '-01-01', (+a.slice(0, 4) - 1) + e.slice(4), true));
-  const cmA = agg(cur, 'c'), pmC = agg(prv, 'c'), cm = [...cmA.values()].sort((x, y) => y.p - x.p), im = [...agg(cur, 'i').values()].sort((x, y) => y.p - x.p), pmI = agg(prv, 'i');
-  const S = series(cur, a, b, type === 'week' ? 'day' : 'week'); S.forEach(p => { p.tipLabel = p.g === 'week' ? `${weekName(p.k)} (${p.label})` : p.label; });
-  const prod = cur.filter(r => r.line === '제품 판매'), loss = prod.filter(r => r.p < 0), noCost = prod.filter(r => r.cost === 0 && r.amt > 0);
-  const low = cm.filter(o => o.amt >= UI.chk.minAmt * (type === 'week' ? 1 : 4) && o.mg != null && o.mg * 100 < UI.chk.mg).sort((x, y) => x.mg - y.mg);
-  const news = cm.filter(o => firstSale(o.k) >= a), lost = lostCust(e, true);
-  const mv = cm.map(o => ({ k: o.k, d: o.p - ((pmC.get(o.k) || {}).p || 0) })); pmC.forEach((o, k) => { if (!cmA.has(k)) mv.push({ k, d: -o.p }); }); mv.sort((x, y) => y.d - x.d);
-  const dA = chg(T.amt, P.amt), dP = chg(T.p, P.p), word = (d, u, dn) => d >= 0 ? u : dn;
+  const y0 = a.slice(0, 4) + '-01-01', Y = total(rowsIn(y0, e, true)), ly = (+a.slice(0, 4) - 1) + '', PY = total(rowsIn(ly + '-01-01', ly + e.slice(4), true));
+  const M0 = W ? total(rowsIn(moStart(moOf(a)), e, true)) : null;
+  const LYM = !W ? total(rowsIn(ly + a.slice(4), ly + b.slice(4), true)) : null;
+  const cmA = agg(cur, 'c'), pmC = agg(prv, 'c'), cm = [...cmA.values()].sort((x, y) => y.p - x.p);
+  const imA = agg(cur, 'i'), pmI = agg(prv, 'i'), im = [...imA.values()].sort((x, y) => y.p - x.p);
+  const moves = (A, PM) => { const L = [...A.values()].map(o => ({ k: o.k, now: o.p, was: (PM.get(o.k) || {}).p || 0 })); PM.forEach((o, k) => { if (!A.has(k)) L.push({ k, now: 0, was: o.p }); }); L.forEach(o => o.d = o.now - o.was); return L; };
+  const mvC = moves(cmA, pmC), mvI = moves(imA, pmI);
+  const upC = mvC.filter(o => o.d > 0).sort((x, y) => y.d - x.d).slice(0, 5), dnC = mvC.filter(o => o.d < 0).sort((x, y) => x.d - y.d).slice(0, 5);
+  const upI = mvI.filter(o => o.d > 0).sort((x, y) => y.d - x.d).slice(0, 5), dnI = mvI.filter(o => o.d < 0).sort((x, y) => x.d - y.d).slice(0, 5);
+  const prod = cur.filter(r => r.line === '제품 판매'), loss = prod.filter(r => r.p < 0 && r.amt > 0).sort((x, y) => x.p - y.p), noCost = prod.filter(r => r.cost === 0 && r.amt > 0);
+  const low = cm.filter(o => o.amt >= UI.chk.minAmt * (W ? 1 : 4) && o.mg != null && o.mg * 100 < UI.chk.mg).sort((x, y) => x.mg - y.mg);
+  const news = cm.filter(o => firstSale(o.k) >= a).sort((x, y) => y.amt - x.amt), lost = lostCust(e, true), AU = audit(a, b, true), auHi = auditHigh(AU);
+  const freeN = AU.free.length, top10p = cm.slice(0, 10).reduce((s, o) => s + o.p, 0);
+  const sgn = v => (v >= 0 ? '+' : '') , pp = (c, p) => c == null || p == null ? '—' : `${sgn(c - p)}${((c - p) * 100).toFixed(1)}%p`;
+  const dA = chg(T.amt, P.amt), dP = chg(T.p, P.p);
+  /* 핵심 요약 (최대 5줄) */
   const bl = [];
-  bl.push(`${type === 'week' ? '이번 주' : '이번 달'} 매출 <b>${kor(T.amt)}</b>, 판매이익 <b>${kor(T.p)}</b>, 이익률 <b>${pct(T.mg)}</b>입니다.`);
-  if (P.n) bl.push(`${pn}보다 매출 <b>${kor(Math.abs(T.amt - P.amt))} ${word(T.amt - P.amt, '증가', '감소')}</b>(${dA >= 0 ? '+' : ''}${pct(dA)}), 이익 <b>${kor(Math.abs(T.p - P.p))} ${word(T.p - P.p, '증가', '감소')}</b>(${dP >= 0 ? '+' : ''}${pct(dP)}). 이익률은 ${pct(P.mg)} → ${pct(T.mg)}(${T.mg - P.mg >= 0 ? '+' : ''}${((T.mg - P.mg) * 100).toFixed(1)}%p).`);
-  if (cm[0]) bl.push(`이익 1위 거래처는 <b>${esc(cm[0].k)}</b>(${kor(cm[0].p)}, 이익률 ${pct(cm[0].mg)}), 이익 1위 품목은 <b>${esc(im[0] ? im[0].k : '')}</b>(${kor(im[0] ? im[0].p : 0)})입니다.`);
-  if (P.n && mv.length) { const up = mv[0], dn = mv[mv.length - 1]; if (up.d > 0) bl.push(`이익이 가장 많이 늘어난 거래처: ${esc(up.k)} (+${kor(up.d)})${dn.d < 0 ? ` · 가장 많이 줄어든 거래처: ${esc(dn.k)} (${kor(dn.d)})` : ''}`); }
-  bl.push(`올해 누계(1/1~${md(e)}) 매출 ${kor(Y.amt)}, 이익 ${kor(Y.p)} (이익률 ${pct(Y.mg)})${PY.n ? ` — 작년 같은 기간보다 매출 ${chg(Y.amt, PY.amt) >= 0 ? '+' : ''}${pct(chg(Y.amt, PY.amt))}` : ''}.`);
-  const warn = [], AU = audit(a, b, true), auHi = auditHigh(AU);
-  if (auHi) warn.push(`전표 입력 오류 의심 <b>${auHi}건</b> — 단위·품목 선택 ${AU.unit.length}, 단가에 원가 입력 ${AU.costp.length}, 수량 오타 ${AU.qtyt.length} (「전표 점검」 화면에서 확인)`);
-  if (loss.length) warn.push(`역마진 판매 <b>${loss.length}건</b> (손실 ${kor(-loss.reduce((s, r) => s + r.p, 0))}) — ${[...agg(loss, 'i').values()].sort((x, y) => x.p - y.p).slice(0, 3).map(o => esc(o.k)).join(', ')}`);
-  if (noCost.length) warn.push(`원가 미등록 판매 <b>${noCost.length}건</b> (매출 ${kor(noCost.reduce((s, r) => s + r.amt, 0))}) — 이 금액만큼 이익이 크게 잡혀 있습니다. 이카운트 입고단가 확인 필요`);
-  if (low.length) warn.push(`이익률 ${UI.chk.mg}% 미만 거래처 <b>${low.length}곳</b> — ${low.slice(0, 4).map(o => `${esc(o.k)}(${pct(o.mg)})`).join(', ')}`);
-  if (lost.length) warn.push(`${UI.chk.gap}주 넘게 주문이 없는 단골 거래처 <b>${lost.length}곳</b> — ${lost.slice(0, 4).map(o => `${esc(o.k)}(마지막 ${md(o.last)})`).join(', ')}`);
-  if (news.length) warn.push(`신규 거래처 <b>${news.length}곳</b> — ${news.slice(0, 4).map(o => esc(o.k)).join(', ')}`);
-  const topCols = (pm, nm) => [rank, { k: 'k', l: nm, cls: 'nm', f: r => esc(r.k), x: r => r.k }, COL.amt, COL.p, COL.mg, { k: 'pp', l: pn + ' 이익', n: 1, v: r => (pm.get(r.k) || {}).p, f: r => pm.get(r.k) ? money(pm.get(r.k).p) : `<span class="muted small">${pn} 없음</span>`, x: r => pm.get(r.k) ? Math.round(pm.get(r.k).p) : '' }, { k: 'dd', l: '증감', n: 1, f: r => pm.get(r.k) ? dlt(chg(r.p, pm.get(r.k).p)) : '', x: r => { const o = pm.get(r.k); const d = o ? chg(r.p, o.p) : null; return d == null ? '' : Math.round(d * 1000) / 10; } }];
-  const kinds = [...agg(cur, 'kind').values()].sort((x, y) => y.amt - x.amt), pk = agg(prv, 'kind');
-  const perCols = [{ k: 'label', l: type === 'week' ? '일자' : '주', f: r => esc(r.tipLabel), x: r => r.tipLabel }, COL.amt, COL.cost, COL.p, COL.mg, COL.nc, COL.n];
-  const title = type === 'week' ? `${a.slice(0, 4)}년 ${weekName(a)} · ${mdw(a)} ~ ${mdw(b)}` : `${moName(key)} · ${md(a)} ~ ${md(b)}`;
-  const up = DB.uploads.find(u => u.type === 'sales');
-  const html = `<div class="rep" id="rep">
-    <div class="rp-head"><div class="rp-left"><img class="rp-logo" src="brand_logo.png" alt="" onerror="this.style.display='none'"><div><div class="rp-co">빵을그리다 주식회사</div><h1>${type === 'week' ? '주간' : '월간'} 판매이익 보고</h1><div class="rp-per">${esc(title)}</div></div></div>
-      <table class="sign"><tr><th>담당</th><th>대표이사</th></tr><tr><td></td><td></td></tr></table></div>
+  bl.push(`${cn} 매출 <b>${kor(T.amt)}</b>, 판매이익 <b>${kor(T.p)}</b>, 이익률 <b>${pct(T.mg)}</b>`);
+  if (P.n) bl.push(`${pn} 대비 매출 <b>${sgn(dA)}${pct(dA)}</b>(${sgn(T.amt - P.amt)}${kor(T.amt - P.amt)}), 이익 <b>${sgn(dP)}${pct(dP)}</b>(${sgn(T.p - P.p)}${kor(T.p - P.p)}), 이익률 ${pp(T.mg, P.mg)}`);
+  if (cm[0]) bl.push(`이익 1위 거래처 <b>${esc(cut(cm[0].k, 26))}</b> ${kor(cm[0].p)} · 1위 품목 <b>${esc(cut(im[0] ? im[0].k : '', 26))}</b> ${kor(im[0] ? im[0].p : 0)}`);
+  if (upC[0] || dnC[0]) bl.push(`${upC[0] ? `이익 증가 1위 ${esc(cut(upC[0].k, 20))}(+${kor(upC[0].d)})` : ''}${upC[0] && dnC[0] ? ' · ' : ''}${dnC[0] ? `감소 1위 ${esc(cut(dnC[0].k, 20))}(${kor(dnC[0].d)})` : ''}`);
+  const chk = [auHi ? `전표 오류 의심 ${auHi}건` : '', loss.length ? `역마진 ${loss.length}건` : '', lost.length ? `거래 끊김 의심 ${lost.length}곳` : ''].filter(Boolean);
+  bl.push(chk.length ? `확인 필요: <b>${chk.join(' · ')}</b> → 마지막 쪽 참고` : '특별히 확인할 사항이 없습니다');
+  /* 표 정의 */
+  const nm = (l, n = 24) => ({ k: 'k', l, cls: 'nm', f: r => `<span title="${esc(r.k)}">${esc(cut(r.k, n))}</span>`, x: r => r.k });
+  const share = (tot, k = 'p') => ({ k: 'sh', l: '비중', n: 1, f: r => tot ? `<span class="rbar"><i style="width:${Math.max(0, Math.min(1, r[k] / tot)) * 46}px"></i>${pct(r[k] / tot, 0)}</span>` : '', x: r => tot ? Math.round(r[k] / tot * 1000) / 10 : '' });
+  const prevP = PM => ({ k: 'pv', l: pn + ' 이익', n: 1, f: r => PM.get(r.k) ? money(PM.get(r.k).p) : '<span class="muted">—</span>', x: r => PM.get(r.k) ? Math.round(PM.get(r.k).p) : '' });
+  const isNew = (r, cust) => cust && firstSale(r.k) >= a;
+  const dlP = (PM, cust) => ({ k: 'dl', l: '증감', n: 1, f: r => PM.get(r.k) ? dlt(chg(r.p, PM.get(r.k).p)) : isNew(r, cust) ? '<span class="tag grn">신규</span>' : `<span class="muted">${pn.replace(' 같은 기간', '')} 없음</span>`, x: r => { const o = PM.get(r.k), d = o ? chg(r.p, o.p) : null; return d == null ? (o ? '' : isNew(r, cust) ? '신규' : '') : Math.round(d * 1000) / 10; } });
+  const topCols = (l, PM, tot, cust) => [rank, nm(l), COL.amt, COL.p, COL.mg, share(tot), prevP(PM), dlP(PM, cust)];
+  const mvCols = l => [nm(l, 18), { k: 'was', l: pn.replace(' 같은 기간', ''), n: 1, f: r => money(r.was) }, { k: 'now', l: cn, n: 1, f: r => money(r.now) }, { k: 'd', l: '증감', n: 1, f: r => `<b class="${r.d < 0 ? 'neg' : 'pos'}">${r.d > 0 ? '+' : ''}${money(r.d)}</b>`, x: r => Math.round(r.d) }];
+  const grpCols = l => [{ k: 'k', l, f: r => esc(r.k), x: r => r.k }, COL.amt, COL.cost, COL.p, COL.mg, share(T.amt, 'amt')];
+  const grpColsS = l => [{ k: 'k', l, f: r => esc(r.k), x: r => r.k }, COL.amt, COL.p, COL.mg, share(T.amt, 'amt')];
+  const lineCols = [{ k: 'd', l: '날짜', f: x => mdw(x.r.d), x: x => x.r.d }, { k: 'c', l: '거래처', cls: 'nm', f: x => esc(cut(x.r.c, 16)), x: x => x.r.c }, { k: 'i', l: '품목', cls: 'nm', f: x => esc(cut(x.r.i, 20)), x: x => x.r.i }, { k: 'why', l: '의심 이유', cls: 'why', f: x => esc(cut(x.why, 54)), x: x => x.why }];
+  /* 비교표 */
+  const cmpRow = (l, f, fmt, isPct) => { const c = f(T), p = f(P), d = c == null || p == null ? null : c - p;
+    const extra = W ? [f(M0)] : [LYM.n ? f(LYM) : null]; return { l, c, p, d, r: isPct ? null : chg(c, p), ex: extra[0], y: f(Y), fmt, isPct }; };
+  const perDay = o => o.nd ? o.amt / o.nd : 0;
+  const CR = [cmpRow('매출 (공급가액)', o => o.amt, money), cmpRow('원가', o => o.cost, money), cmpRow('판매이익', o => o.p, money), cmpRow('이익률', o => o.mg, v => pct(v), true), cmpRow('거래처 수', o => o.nc, v => nf.format(v)), cmpRow('판매 건수', o => o.n, v => nf.format(v)), cmpRow('판매일 하루 평균 매출', perDay, money)];
+  const cmpTbl = `<table class="t ctbl"><thead><tr><th></th><th class="n">${cn}</th><th class="n">${pn}</th><th class="n">증감</th><th class="n">증감률</th><th class="n">${W ? '이번 달 누계' : '작년 같은 달'}</th><th class="n">올해 누계</th></tr></thead><tbody>${CR.map(o => `<tr><td><b>${o.l}</b></td><td class="n"><b>${o.c == null ? '—' : o.fmt(o.c)}</b></td><td class="n">${o.p == null || !P.n ? '—' : o.fmt(o.p)}</td><td class="n">${!P.n || o.d == null ? '—' : o.isPct ? pp(o.c, o.p) : `<span class="${o.d < 0 ? 'neg' : ''}">${o.d > 0 ? '+' : ''}${o.fmt(o.d)}</span>`}</td><td class="n">${o.isPct || !P.n ? '' : dlt(o.r)}</td><td class="n">${o.ex == null ? '—' : o.fmt(o.ex)}</td><td class="n">${o.fmt(o.y)}</td></tr>`).join('')}</tbody></table>`;
+  /* 추이 */
+  const S = series(cur, a, b, W ? 'day' : 'week'); S.forEach((p, i) => { p.tipLabel = p.g === 'week' ? `${i + 1}주 (${p.label})` : p.label; });
+  const perCols = [{ k: 'label', l: W ? '일자' : '주', f: r => esc(r.tipLabel), x: r => r.tipLabel }, COL.amt, COL.cost, COL.p, COL.mg, COL.nc, COL.n];
+  const unit = unitLbl(), up = DB.uploads.find(u => u.type === 'sales');
+  const name = `${W ? '주간' : '월간'} 판매이익 보고`, title = W ? `${a.slice(0, 4)}년 ${weekName(a)} · ${mdw(a)} ~ ${mdw(b)}` : `${moName(key)} · ${md(a)} ~ ${md(b)}${part ? ` (${md(e)}까지 집계)` : ''}`;
+  const pages = [];
+  const sec = (t, sub) => `<h3>${t}${sub ? `<small>${sub}</small>` : ''}</h3>`;
+  /* 1쪽: 요약 */
+  pages.push(`<div class="rp-head"><div class="rp-left"><img class="rp-logo" src="brand_logo.png" alt="" onerror="this.style.display='none'"><div><div class="rp-co">빵을그리다 주식회사</div><h1>${name}</h1><div class="rp-per">${esc(title)}</div></div></div>
+      <table class="sign"><tr><th>담당</th><th>팀장</th><th>대표이사</th></tr><tr><td></td><td></td><td></td></tr></table></div>
     <div class="rk4">
       <div class="rk"><div class="kl">매출 (공급가액)</div><div class="kv">${kor(T.amt)}</div><div class="ks">${dlt(dA)} ${pn} ${kor(P.amt)}</div></div>
       <div class="rk main"><div class="kl">판매이익</div><div class="kv">${kor(T.p)}</div><div class="ks">${dlt(dP)} ${pn} ${kor(P.p)}</div></div>
       <div class="rk main"><div class="kl">이익률</div><div class="kv">${pct(T.mg)}</div><div class="ks">${dlt(T.mg != null && P.mg != null ? T.mg - P.mg : null, 'pp')} ${pn} ${pct(P.mg)}</div></div>
-      <div class="rk"><div class="kl">거래처 · 판매 건수</div><div class="kv">${T.nc}곳 · ${nf.format(T.n)}건</div><div class="ks">${pn} ${P.nc}곳 · 신규 ${news.length}곳</div></div>
+      <div class="rk"><div class="kl">거래처 · 판매 건수</div><div class="kv">${T.nc}곳 · ${nf.format(T.n)}건</div><div class="ks">신규 ${news.length}곳 · ${pn} ${P.nc}곳</div></div>
     </div>
-    <h3>한눈에 보기</h3><ul class="sum">${bl.map(x => `<li>${x}</li>`).join('')}</ul>
-    <h3>${type === 'week' ? '일별' : '주별'} 매출 · 이익</h3>${LEG_BARS}${chart({ pts: S, h: 200, fixed: 700 })}
-    ${tbl('rpPer', perCols, S.filter(p => p.n), { foot: T, title: type === 'week' ? '일별' : '주별' })}
-    <h3>거래처별 판매이익 TOP 10</h3>${tbl('rpC', topCols(pmC, '거래처'), cm.slice(0, 10), { title: '거래처TOP10' })}
-    <div class="note">상위 10곳 이익 합계 ${kor(cm.slice(0, 10).reduce((s, o) => s + o.p, 0))} = 전체 이익의 ${pct(T.p ? cm.slice(0, 10).reduce((s, o) => s + o.p, 0) / T.p : null, 0)}</div>
-    <h3>품목별 판매이익 TOP 10</h3>${tbl('rpI', topCols(pmI, '품목'), im.slice(0, 10), { title: '품목TOP10' })}
-    <h3>품목구분별</h3>${tbl('rpK', [{ k: 'k', l: '품목구분', f: r => esc(r.k), x: r => r.k }, COL.amt, COL.cost, COL.p, COL.mg, shareCol(T.amt), prevCol(pk, pn + ' 대비 이익')], kinds, { foot: T, title: '품목구분별' })}
-    <h3>확인이 필요한 사항</h3>${warn.length ? `<ul class="sum">${warn.map(x => `<li>${x}</li>`).join('')}</ul>` : '<div class="note">특별히 확인할 사항이 없습니다.</div>'}
-    ${withAll ? `<div class="pb"></div><h3>거래처 전체 (${cm.length}곳, 이익 순)</h3>${tbl('rpAll', [rank, { k: 'k', l: '거래처', cls: 'nm', f: r => esc(r.k), x: r => r.k }, COL.amt, COL.cost, COL.p, COL.mg, prevCol(pmC, pn + ' 대비 이익')], cm, { foot: T, title: '거래처전체' })}` : ''}
-    <div class="rp-foot"><span>자료: 이카운트 판매현황${up ? ` (${up.at.slice(0, 10)} 올림)` : ''} · 판매이익 = 공급가액 − 원가(입고단가 기준) · 금액은 부가세 제외</span><span>출력 ${todayS()}</span></div>
-  </div>`;
-  REP = { type, key, a, b, title, T, P, cm, im, S, kinds, bl, warn, pmC, pmI, pn };
+    <div class="rp-sum"><div class="st">핵심 요약</div><ol>${bl.map(x => `<li>${x}</li>`).join('')}</ol></div>
+    ${sec(`${W ? '일별' : '주별'} 매출 · 이익`, '막대 = 매출(회색 원가 + 파랑 이익) · 위 숫자 = 이익률')}${chart({ pts: S, h: 190, fixed: 700 })}
+    ${sec(`${pn} · 누계 비교`, `단위 ${unit}`)}${cmpTbl}`);
+  /* (월간) 2쪽: 추이 */
+  if (!W) {
+    const first = R.length ? moOf(R[0].d) : key, m0 = addMo(key, -11) > first ? addMo(key, -11) : first, MS = series(rowsIn(moStart(m0), moEnd(key), true), moStart(m0), moEnd(key), 'month'); MS.forEach(p => p.tipLabel = moName(p.k));
+    const mCols = [{ k: 'k', l: '월', f: r => `<b>${moName(r.k)}</b>`, x: r => moName(r.k) }, COL.amt, COL.cost, COL.p, COL.mg, { k: 'dA', l: '매출 전월비', n: 1, f: (r, i) => i > 0 && MS[i - 1].amt ? dlt(chg(r.amt, MS[i - 1].amt)) : '', x: (r, i) => i > 0 && MS[i - 1].amt ? Math.round(chg(r.amt, MS[i - 1].amt) * 1000) / 10 : '' }, COL.nc];
+    pages.push(`${sec(moSpan(moStart(m0), moEnd(key)) >= 12 ? '최근 12개월 월별 추이' : `월별 추이 (${moName(m0)}부터)`, `단위 ${unit}`)}${chart({ pts: MS, h: 200, fixed: 700 })}
+      ${rtbl('rpM', mCols, MS, { title: '월별추이' })}
+      ${sec(`${moName(key)} 주별 실적`, `단위 ${unit}`)}${rtbl('rpPer', perCols, S.filter(p => p.n), { foot: T, title: '주별' })}`);
+  }
+  /* 거래처 */
+  const grpL = [...agg(cur, 'grp').values()].sort((x, y) => y.amt - x.amt);
+  pages.push(`${W ? `${sec('일별 실적', `단위 ${unit}`)}${rtbl('rpPer', perCols, S.filter(p => p.n), { foot: T, title: '일별' })}` : ''}
+    ${sec('거래처별 판매이익 TOP 10', `단위 ${unit} · 상위 10곳이 전체 이익의 ${pct(T.p ? top10p / T.p : null, 0)}`)}${rtbl('rpC', topCols('거래처', pmC, T.p, true), cm.slice(0, 10), { title: '거래처TOP10' })}
+    <div class="two"><div>${sec('이익이 늘어난 거래처', pn + ' 대비')}${rtbl('rpCu', mvCols('거래처'), upC, { title: '거래처증가' })}</div><div>${sec('이익이 줄어든 거래처', pn + ' 대비')}${rtbl('rpCd', mvCols('거래처'), dnC, { title: '거래처감소' })}</div></div>
+    ${W ? '' : `<div class="two"><div>${sec('거래처그룹별')}${rtbl('rpG', grpColsS('그룹'), grpL, { title: '거래처그룹' })}</div><div>${sec(`이익률 ${UI.chk.mg}% 미만 거래처`)}${rtbl('rpLow', [nm('거래처', 18), COL.amt, COL.mg], low.slice(0, 5), { title: '이익률저조' })}</div></div>`}`);
+  /* 품목 · 분류 */
+  const kinds = [...agg(cur, 'kind').values()].sort((x, y) => y.amt - x.amt), pk = agg(prv, 'kind'), lines = [...agg(cur, 'line').values()].sort((x, y) => y.amt - x.amt);
+  pages.push(`${sec('품목별 판매이익 TOP 10', `단위 ${unit}`)}${rtbl('rpI', topCols('품목', pmI, T.p), im.slice(0, 10), { title: '품목TOP10' })}
+    <div class="two"><div>${sec('이익이 늘어난 품목', pn + ' 대비')}${rtbl('rpIu', mvCols('품목'), upI, { title: '품목증가' })}</div><div>${sec('이익이 줄어든 품목', pn + ' 대비')}${rtbl('rpId', mvCols('품목'), dnI, { title: '품목감소' })}</div></div>
+    ${sec('품목구분별', `단위 ${unit}`)}${rtbl('rpK', [...grpCols('품목구분'), dlP(pk)], kinds.slice(0, 7), { foot: T, title: '품목구분별' })}
+    ${W ? `<div class="two"><div>${sec('거래처그룹별')}${rtbl('rpG', grpColsS('그룹'), grpL, { title: '거래처그룹' })}</div><div>${sec('매출유형별')}${rtbl('rpL', grpColsS('유형'), lines.slice(0, 5), { title: '매출유형' })}</div></div>` : `${sec('매출유형별')}${rtbl('rpL', grpCols('유형'), lines.slice(0, 5), { title: '매출유형' })}`}`);
+  /* 확인 사항 */
+  const hiL = [...AU.unit, ...AU.costp, ...AU.qtyt].sort((x, y) => x.r.d < y.r.d ? -1 : 1);
+  const tile = (t, n, cls, s) => `<div class="ck ${n ? cls : 'ok'}"><div class="cl">${t}</div><div class="cv">${n}</div><div class="cs">${s}</div></div>`;
+  pages.push(`${sec('확인이 필요한 사항', '이카운트 전표·거래처 관리 확인용')}
+    <div class="ck6">${tile('전표 오류 의심', auHi, 'red', '단위·품목, 원가=단가, 수량')}${tile('역마진 (유상)', loss.length, 'red', loss.length ? '손실 ' + kor(-loss.reduce((s, r) => s + r.p, 0)) : '없음')}${tile('원가 0원', noCost.length, 'amb', noCost.length ? '매출 ' + kor(noCost.reduce((s, r) => s + r.amt, 0)) : '없음')}${tile('0원 출고', freeN, 'amb', '샘플·서비스 여부')}${tile('거래 끊김 의심', lost.length, 'amb', `${UI.chk.gap}주 넘게 주문 없음`)}${tile('신규 거래처', news.length, 'grn', '이 기간 첫 거래')}</div>
+    ${sec('전표 오류 의심', `오류 가능성 높음 · ${hiL.length > 8 ? `상위 8건 / 전체 ${hiL.length}건 — 나머지는 「전표 점검」 화면` : `${hiL.length}건`}`)}${hiL.length ? rtbl('rpAu', lineCols, hiL.slice(0, 8), { title: '전표오류의심' }) : '<div class="note">의심되는 전표가 없습니다.</div>'}
+    ${loss.length ? `${sec('역마진 판매', `손실이 큰 순 · ${Math.min(5, loss.length)} / ${loss.length}건`)}${rtbl('rpLoss', [{ k: 'd', l: '날짜', f: r => mdw(r.d), x: r => r.d }, { k: 'c', l: '거래처', cls: 'nm', f: r => esc(cut(r.c, 16)), x: r => r.c }, { k: 'i', l: '품목', cls: 'nm', f: r => esc(cut(r.i, 22)), x: r => r.i }, COL.amt, COL.p], loss.slice(0, 5), { title: '역마진' })}` : ''}
+    <div class="two"><div>${sec('거래 끊김 의심', `${lost.length > 5 ? `5 / ${lost.length}곳 · ` : ''}최근 12주 단골 · ${md(e)} 기준`)}${lost.length ? rtbl('rpLost', [nm('거래처', 18), { k: 'last', l: '마지막 주문', f: r => mdw(r.last), x: r => r.last }], lost.slice(0, 5), { title: '거래끊김' }) : '<div class="note">없음</div>'}</div>
+      <div>${sec('신규 거래처', news.length > 5 ? `매출 순 5 / ${news.length}곳` : '')}${news.length ? rtbl('rpNew', [nm('거래처', 18), COL.amt, COL.p], news.slice(0, 5), { title: '신규거래처' }) : '<div class="note">없음</div>'}</div></div>
+    <div class="memo"><div class="st">지시 · 검토 사항</div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>`);
+  const N = pages.length + (withAll ? 1 : 0);
+  const foot = n => `<div class="pg-foot"><span>빵을그리다 주식회사 · ${name} · ${esc(title)}</span><span>${n} / ${N}</span></div>`;
+  const top = n => n === 1 ? '' : `<div class="pg-top"><img src="brand_logo.png" alt="" onerror="this.style.display='none'"><b>${name}</b><span>${esc(title)}</span></div>`;
+  let html = pages.map((p, i) => `<section class="page">${top(i + 1)}<div class="pg-body">${p}</div>${foot(i + 1)}</section>`).join('');
+  if (withAll) html += `<section class="page flow"><div class="pg-top"><img src="brand_logo.png" alt="" onerror="this.style.display='none'"><b>${name}</b><span>${esc(title)}</span></div>${sec(`부록 · 거래처 전체 ${cm.length}곳 (이익 순)`, `단위 ${unit}`)}${rtbl('rpAll', [rank, nm('거래처', 30), COL.amt, COL.cost, COL.p, COL.mg, prevP(pmC), dlP(pmC, true)], cm, { foot: T, title: '거래처전체' })}${foot(N)}</section>`;
+  html = `<div class="rep" id="rep">${html}</div><div class="muted small noprint" style="text-align:center;margin-top:8px">자료: 이카운트 판매현황${up ? ` (${esc(up.at.slice(0, 10))} 올림)` : ''} · 판매이익 = 공급가액 − 원가(입고단가 기준) · 금액은 부가세 제외</div>`;
+  REP = { type, key, a, b, title, T, P, bl, pn, name, CR, cn, W };
   return html;
 }
 let REP = null;
 function repExcel() {
-  if (!REP) return; const { title, T, P, pn } = REP, aoa1 = [[`${REP.type === 'week' ? '주간' : '월간'} 판매이익 보고`], [title], [], ['항목', '이번', pn, '증감(%)'],
-    ['매출(공급가액)', Math.round(T.amt), Math.round(P.amt), chg(T.amt, P.amt) == null ? '' : Math.round(chg(T.amt, P.amt) * 1000) / 10], ['원가', Math.round(T.cost), Math.round(P.cost), ''], ['판매이익', Math.round(T.p), Math.round(P.p), chg(T.p, P.p) == null ? '' : Math.round(chg(T.p, P.p) * 1000) / 10], ['이익률(%)', T.mg == null ? '' : Math.round(T.mg * 1000) / 10, P.mg == null ? '' : Math.round(P.mg * 1000) / 10, ''], ['거래처 수', T.nc, P.nc, ''], [], ['요약'], ...REP.bl.map(x => [strip(x)]), [], ['확인 사항'], ...REP.warn.map(x => [strip(x)])];
-  const sh = [['요약', aoa1]]; ['rpPer', 'rpC', 'rpI', 'rpK', 'rpAll'].forEach(id => { if (EXP[id]) sh.push([EXP[id].title, expAoa(EXP[id])]); });
-  xlsxSave(sh, `판매이익보고_${REP.type === 'week' ? '주간' : '월간'}_${REP.a}.xlsx`);
+  if (!REP) return; const { title, CR, pn, cn, W, name } = REP, r1 = v => v == null ? '' : Math.round(v * 1000) / 10;
+  const aoa1 = [[name], [title], [], ['항목', cn, pn, '증감', '증감률(%)', W ? '이번 달 누계' : '작년 같은 달', '올해 누계'], ...CR.map(o => o.isPct ? [o.l, r1(o.c), r1(o.p), o.c != null && o.p != null ? r1(o.c - o.p) : '', '', r1(o.ex), r1(o.y)] : [o.l, Math.round(o.c || 0), Math.round(o.p || 0), Math.round(o.d || 0), r1(o.r), o.ex == null ? '' : Math.round(o.ex), Math.round(o.y || 0)]), [], ['핵심 요약'], ...REP.bl.map(x => [strip(x)])];
+  const sh = [['요약', aoa1]]; ['rpM', 'rpPer', 'rpC', 'rpCu', 'rpCd', 'rpI', 'rpIu', 'rpId', 'rpK', 'rpG', 'rpL', 'rpLow', 'rpAu', 'rpLoss', 'rpLost', 'rpNew', 'rpAll'].forEach(id => { if (EXP[id] && EXP[id].rows.length) sh.push([EXP[id].title, expAoa(EXP[id])]); });
+  const keepUnit = UI.unit; UI.unit = UI.rep.unit || 'k'; try { xlsxSave(sh, `판매이익보고_${W ? '주간' : '월간'}_${REP.a}.xlsx`); } finally { UI.unit = keepUnit; }
 }
 
 /* ── 자료 올리기 ── */
@@ -1296,6 +1382,7 @@ document.addEventListener('change', e => {
   if (t.id === 'repKey') { UI.rep.key = t.value; saveUI(); render(); return; }
   if (t.dataset.mark != null) { DB.audit = DB.audit || {}; if (t.value) DB.audit[t.dataset.mark] = t.value; else delete DB.audit[t.dataset.mark]; if (srvOn()) api('mark', { key: t.dataset.mark, status: t.value }).catch(e => toast('구글 시트에 저장하지 못했습니다: ' + e.message)); dbSave('audit'); t.className = 'f mk mk-' + (t.value || 'none'); if (UI.audHide && (t.value === 'ok' || t.value === 'done')) rerender(); return; }
   if (t.id === 'audHide' || t.id === 'audRep') { UI[t.id] = t.checked; saveUI(); rerender(); return; }
+  if (t.id === 'repUnit') { UI.rep.unit = t.value; saveUI(); render(); return; }
   if (t.id === 'repAll') { UI.rep.all = t.checked; saveUI(); render(); return; }
   if (t.dataset.cg) { const c = t.dataset.c, o = DB.cust[c] = DB.cust[c] || {}; o[t.dataset.cg] = t.type === 'checkbox' ? t.checked : t.value.trim(); dbSave('cust'); enrich(); clearTimeout(_cuT); _cuT = setTimeout(() => { if (srvOn()) api('putCust', { rows: custRows() }).then(() => toast('거래처 분류를 구글 시트에 저장했습니다')).catch(e => toast('구글 시트에 저장하지 못했습니다: ' + e.message)); }, 800); return; }
 });
