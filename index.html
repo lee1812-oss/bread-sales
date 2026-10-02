@@ -109,6 +109,7 @@ input.f[type=date]{min-width:0}
 .kpi.main{border-color:var(--c-profit);box-shadow:inset 3px 0 0 var(--c-profit)}
 .dl{font-weight:800;white-space:nowrap}
 .dl.up{color:var(--good)} .dl.down{color:var(--minus)} .dl.flat{color:var(--ink3)}
+.inv .dl.up{color:var(--minus)} .inv .dl.down{color:var(--good)}
 
 /* tables */
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line2);border-radius:8px}
@@ -125,6 +126,8 @@ table.t tr[data-open]:hover td{background:#F2F8FB}
 table.t tfoot td{font-weight:800;background:var(--soft);border-top:1px solid var(--line);border-bottom:0}
 table.t td.why{white-space:normal;min-width:230px;font-size:12.5px;color:var(--ink2)}
 .lnk{cursor:pointer}.lnk:hover{color:var(--brand);text-decoration:underline}
+.fxsum{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-2px 0 10px}
+select.fx-exch,select.fx-svc,select.fx-promo,select.fx-done{background:var(--good-bg);color:var(--good)}select.fx-miss{background:var(--minus-bg);color:var(--minus)}select.fx-none{background:var(--warn-bg);color:var(--warn)}
 select.mk{min-height:28px;font-size:12.5px;padding:0 4px}select.mk-ok,select.mk-done{background:var(--good-bg);color:var(--good)}select.mk-fix{background:var(--minus-bg);color:var(--minus)}
 a.alert{text-decoration:none;color:inherit}
 table.t td.rk{color:var(--ink3);width:34px;text-align:right}
@@ -430,7 +433,37 @@ function enrich() {
     const kind = it && it.kind ? it.kind : '미분류', ci = cc[r.c] || (cc[r.c] = custInfo(r.c));
     return Object.assign({}, r, { kind, vendor: (it && it.vendor) || '미분류', ig: (it && it.grp) || '미분류', code: it ? it.code : '', line: lineType(r.i, kind), grp: ci.grp, region: ci.region, wk: monOf(r.d), mo: r.d.slice(0, 7), dow: dp(r.d).getDay() });
   }).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+  splitFree();
 }
+/* 무상분 나누기 — 교환·샘플·덤으로 0원에 나간 수량은 판매 손실(역마진)이 아니라 「교환·무상 출고 원가」로 따로 봅니다.
+   · 공급가액 0원 → 전부 무상
+   · 공급가액 = 단가 × (수량 − n) → n개 무상 (예: 나비파이 5박스 중 2박스 값만 → 3박스 무상)
+   유상분: pq(수량) · pc(원가) · pp(판매이익 = 공급가액 − 유상분 원가) / 무상분: fq · fc(원가) · fx(유형) */
+const FXT = [['', '미분류'], ['exch', '교환'], ['svc', '샘플·서비스'], ['promo', '덤·프로모션'], ['miss', '청구 누락 (수정 필요)'], ['done', '청구 누락 → 수정함']];
+const FXL = Object.fromEntries(FXT);
+const fxKey = r => 'fx|' + r.d + '|' + r.c + '|' + r.i;
+function splitFree() {
+  const partC = new Map();
+  R.forEach(r => {
+    r.fq = 0; r.fc = 0;
+    if (r.line === '제품 판매' && r.q > 0) {
+      if (r.amt === 0) { r.fq = r.q; r.fc = r.cost; }
+      else if (r.u > 0 && r.amt < r.u * r.q - 1) { const x = r.amt / r.u, pq = Math.round(x); if (Math.abs(x - pq) < .05 && pq >= 1 && r.q - pq >= 1) { r.fq = r.q - pq; r.fc = r.cost * r.fq / r.q; partC.set(r.c, (partC.get(r.c) || 0) + 1); } }
+    }
+    r.pq = r.q - r.fq; r.pc = r.cost - r.fc; r.pp = r.amt - r.pc;
+  });
+  const A = DB.audit || {};
+  R.forEach(r => {
+    if (!r.fq) { r.fx = ''; r.fxAuto = ''; return; }
+    let t = '', why = '';
+    if (isInternal(r.c)) { t = 'svc'; why = '내부·영업용'; }
+    else if (/교환|불량|파손|재발송|재출고|대체|클레임|하자/.test(r.memo || '')) { t = 'exch'; why = '전달사항에 교환'; }
+    else if (/샘플|시식|서비스|증정|홍보|무상/.test(r.memo || '')) { t = 'svc'; why = '전달사항에 샘플·서비스'; }
+    else if (r.amt > 0 && (partC.get(r.c) || 0) >= 3) { t = 'promo'; why = '이 거래처에 덤이 반복됨'; }
+    r.fxAuto = why; r.fx = A[fxKey(r)] != null ? A[fxKey(r)] : t;
+  });
+}
+function freeSum(rows) { const o = { n: 0, fc: 0 }; FXT.forEach(([k]) => o[k] = { n: 0, fc: 0, fq: 0 }); rows.forEach(r => { if (!r.fq) return; const t = o[r.fx] || o['']; t.n++; t.fc += r.fc; t.fq += r.fq; o.n++; o.fc += r.fc; }); return o; }
 const FDIMS = [['c', '거래처'], ['i', '품목'], ['kind', '품목구분'], ['vendor', '매입처(브랜드)'], ['ig', '품목그룹'], ['grp', '거래처그룹'], ['region', '지역'], ['line', '매출유형']];
 const DIMLBL = Object.fromEntries(FDIMS);
 function pass(r) {
@@ -444,14 +477,14 @@ function agg(rows, key) {
   const m = new Map(), kf = typeof key === 'function' ? key : r => r[key];
   for (const r of rows) {
     const k = kf(r); let o = m.get(k);
-    if (!o) { o = { k, amt: 0, cost: 0, p: 0, q: 0, tot: 0, n: 0, _c: new Set(), _d: new Set(), _i: new Set(), first: r.d, last: '' }; m.set(k, o); }
-    o.amt += r.amt; o.cost += r.cost; o.p += r.p; o.q += r.q; o.tot += r.tot; o.n++; o._c.add(r.c); o._d.add(r.d); o._i.add(r.i);
+    if (!o) { o = { k, amt: 0, cost: 0, p: 0, q: 0, tot: 0, n: 0, fc: 0, pp: 0, _c: new Set(), _d: new Set(), _i: new Set(), first: r.d, last: '' }; m.set(k, o); }
+    o.amt += r.amt; o.cost += r.cost; o.p += r.p; o.q += r.q; o.tot += r.tot; o.n++; o.fc += r.fc || 0; o.pp += r.pp != null ? r.pp : r.p; o._c.add(r.c); o._d.add(r.d); o._i.add(r.i);
     if (r.d > o.last) o.last = r.d; if (r.d < o.first) o.first = r.d;
   }
-  for (const o of m.values()) { o.nc = o._c.size; o.nd = o._d.size; o.ni = o._i.size; o.mg = o.amt ? o.p / o.amt : null; }
+  for (const o of m.values()) { o.nc = o._c.size; o.nd = o._d.size; o.ni = o._i.size; o.mg = o.amt ? o.p / o.amt : null; o.pmg = o.amt ? o.pp / o.amt : null; }
   return m;
 }
-const EMPTY = () => ({ amt: 0, cost: 0, p: 0, q: 0, tot: 0, n: 0, nc: 0, nd: 0, ni: 0, mg: null, last: '' });
+const EMPTY = () => ({ amt: 0, cost: 0, p: 0, q: 0, tot: 0, n: 0, fc: 0, pp: 0, nc: 0, nd: 0, ni: 0, mg: null, pmg: null, last: '' });
 const total = rows => agg(rows, () => 'all').get('all') || EMPTY();
 function autoGran(a, b) { const n = dayN(a, b); return n <= 35 ? 'day' : n <= 190 ? 'week' : 'month'; }
 function gLabel(g, k, multiYear) {
@@ -627,7 +660,7 @@ function vDash() {
   const g = UI.gran === 'auto' ? autoGran(a, b) : UI.gran, S = series(cur, a, b, g === 'dow' ? 'day' : g);
   const cm = [...agg(cur, 'c').values()].sort((x, y) => y.p - x.p), im = [...agg(cur, 'i').values()].sort((x, y) => y.p - x.p);
   const top20 = cm.slice().sort((x, y) => y.amt - x.amt), n20 = Math.max(1, Math.ceil(top20.length * .2)), s20 = top20.slice(0, n20).reduce((s, o) => s + o.amt, 0);
-  const AU = audit(a, b), auHi = auditHigh(AU), lossN = cur.filter(r => r.line === '제품 판매' && r.p < 0), noCost = cur.filter(r => r.line === '제품 판매' && r.cost === 0 && r.amt > 0), lowC = cm.filter(o => o.amt >= UI.chk.minAmt * (dayN(a, b) / 7) && o.mg != null && o.mg * 100 < UI.chk.mg);
+  const AU = audit(a, b), auHi = auditHigh(AU), lossN = cur.filter(r => r.line === '제품 판매' && r.pq > 0 && r.pp < 0), FS = freeSum(cur), noCost = cur.filter(r => r.line === '제품 판매' && r.cost === 0 && r.amt > 0), lowC = cm.filter(o => o.amt >= UI.chk.minAmt * (dayN(a, b) / 7) && o.mg != null && o.mg * 100 < UI.chk.mg);
   const lost = lostCust(e), news = cm.filter(o => firstSale(o.k) >= a);
   const dA = chg(T.amt, P.amt), dP = chg(T.p, P.p), up = d => d == null ? '' : d >= 0 ? '늘었' : '줄었';
   const head = !T.n ? `<b>${esc(rangeText(a, b))}</b> 판매 자료가 없습니다.<span class="hs">「자료 올리기」에서 이카운트 판매현황을 올려 주세요.</span>` :
@@ -637,17 +670,17 @@ function vDash() {
   return fbar() + `<div class="headline">${head}</div>
   <div class="kpis">
     <div class="kpi"><div class="kl">매출 (공급가액)</div><div class="kv">${money(T.amt)}<small>${unitLbl()}</small></div><div class="ks">${dlt(dA)} ${pn} 대비</div></div>
-    <div class="kpi"><div class="kl">원가</div><div class="kv">${money(T.cost)}<small>${unitLbl()}</small></div><div class="ks">${dlt(chg(T.cost, P.cost))} ${pn} 대비</div></div>
-    <div class="kpi main"><div class="kl">판매이익</div><div class="kv">${money(T.p)}<small>${unitLbl()}</small></div><div class="ks">${dlt(dP)} ${pn} 대비</div></div>
+    <div class="kpi inv"><div class="kl">원가</div><div class="kv">${money(T.cost)}<small>${unitLbl()}</small></div><div class="ks">${dlt(chg(T.cost, P.cost))} ${pn} 대비</div></div>
+    <div class="kpi main"><div class="kl">판매이익</div><div class="kv">${money(T.p)}<small>${unitLbl()}</small></div><div class="ks">${dlt(dP)} ${pn} 대비${T.fc ? ` · 교환·무상 빼면 ${kor(T.pp)}` : ''}</div></div>
     <div class="kpi main"><div class="kl">이익률</div><div class="kv">${pct(T.mg)}</div><div class="ks">${dlt(T.mg != null && P.mg != null ? T.mg - P.mg : null, 'pp')} ${pn} ${pct(P.mg)}</div></div>
     <div class="kpi"><div class="kl">거래처 · 품목</div><div class="kv">${nf.format(T.nc)}<small>곳</small> ${nf.format(T.ni)}<small>품목</small></div><div class="ks">${pn} ${nf.format(P.nc)}곳 · 신규 ${news.length}곳</div></div>
-    <div class="kpi"><div class="kl">판매일 · 하루 평균</div><div class="kv">${nf.format(T.nd)}<small>일</small></div><div class="ks">하루 평균 매출 ${kor(ppd)}</div></div>
+    <a class="kpi" href="#" data-act="tab" data-tab="audit" style="text-decoration:none;color:inherit"><div class="kl">교환·무상 출고 원가</div><div class="kv">${money(T.fc)}<small>${unitLbl()}</small></div><div class="ks">${FS.n ? `교환 ${kor(FS.exch.fc)} · 미분류 ${FS[''].n}건` : '없음'}</div></a>
   </div>
   <div class="card"><h2>매출 · 이익 추이 <small>${esc(rangeText(a, b))}</small><span class="grow"></span><div class="seg">${[['auto', '자동'], ['day', '일별'], ['week', '주별'], ['month', '월별']].map(([k, l]) => `<button data-gran="${k}" class="${UI.gran === k ? 'on' : ''}">${l}</button>`).join('')}</div></h2>
     ${LEG_BARS}${chart({ pts: S.map(p => Object.assign(p, { tipLabel: p.g === 'week' ? `${weekName(p.k)} (${p.label})` : p.g === 'month' ? moName(p.k) : p.label })), h: 250, click: true })}
     <div class="muted small" style="margin-top:4px">막대를 누르면 그 기간으로 좁혀 봅니다.</div></div>
   <div class="alerts">
-    <button class="alert ${lossN.length ? 'red' : 'ok'}" data-act="tab" data-tab="check"><div class="al">⚠ 역마진 판매</div><div class="av">${lossN.length}건</div><div class="as">${lossN.length ? `손실 ${kor(-lossN.reduce((s, r) => s + r.p, 0))}` : '원가보다 싸게 판 건 없음'}</div></button>
+    <button class="alert ${lossN.length ? 'red' : 'ok'}" data-act="tab" data-tab="check"><div class="al">⚠ 역마진 판매</div><div class="av">${lossN.length}건</div><div class="as">${lossN.length ? `손실 ${kor(-lossN.reduce((s, r) => s + r.pp, 0))} (교환·무상분 제외)` : '원가보다 싸게 판 건 없음'}</div></button>
     <button class="alert ${auHi ? 'red' : 'ok'}" data-act="tab" data-tab="audit"><div class="al">🔎 전표 입력 오류 의심</div><div class="av">${auHi}건</div><div class="as">${auHi ? `단위·품목 ${AU.unit.length} · 원가=단가 ${AU.costp.length} · 수량 ${AU.qtyt.length}` : '의심되는 전표 없음'}${noCost.length ? ` · 원가 0원 ${noCost.length}건` : ''}</div></button>
     <button class="alert ${lowC.length ? 'amb' : 'ok'}" data-act="tab" data-tab="check"><div class="al">📉 이익률 ${UI.chk.mg}% 미만 거래처</div><div class="av">${lowC.length}곳</div><div class="as">${lowC.slice(0, 2).map(o => esc(o.k)).join(', ') || '없음'}</div></button>
     <button class="alert ${lost.length ? 'amb' : 'ok'}" data-act="tab" data-tab="check"><div class="al">⏸ 거래 끊김 의심</div><div class="av">${lost.length}곳</div><div class="as">${UI.chk.gap}주 넘게 주문 없음</div></button>
@@ -757,7 +790,7 @@ function pivot(cur) {
 /* ── 이익 점검 ── */
 function vCheck() {
   const a = UI.from, b = UI.to, cur = rowsIn(a, b), C = UI.chk, prod = cur.filter(r => r.line === '제품 판매');
-  const loss = prod.filter(r => r.p < 0).sort((x, y) => x.p - y.p), noCost = prod.filter(r => r.cost === 0 && r.amt > 0).sort((x, y) => y.amt - x.amt);
+  const loss = prod.filter(r => r.pq > 0 && r.pp < 0).sort((x, y) => x.pp - y.pp), noCost = prod.filter(r => r.cost === 0 && r.amt > 0).sort((x, y) => y.amt - x.amt);
   const scale = Math.max(1, dayN(a, b) / 7), cm = [...agg(cur, 'c').values()];
   const low = cm.filter(o => o.amt >= C.minAmt * scale && o.mg != null && o.mg * 100 < C.mg).sort((x, y) => x.mg - y.mg);
   const lowI = [...agg(prod, 'i').values()].filter(o => o.amt >= C.minAmt * scale / 3 && o.mg != null && o.mg * 100 < C.mg).sort((x, y) => x.mg - y.mg);
@@ -768,15 +801,17 @@ function vCheck() {
   const { pa, pb, pn, e } = cmp(a, b), lost = lostCust(e), news = cm.filter(o => firstSale(o.k) >= a).sort((x, y) => y.amt - x.amt);
   const pm = agg(rowsIn(pa, pb), 'c'), drop = cm.map(o => ({ o, p: pm.get(o.k) })).filter(x => x.p && x.p.amt >= C.minAmt * scale && chg(x.o.amt, x.p.amt) <= -.3).map(x => Object.assign({}, x.o, { pAmt: x.p.amt, d: chg(x.o.amt, x.p.amt) })).sort((x, y) => (x.amt - x.pAmt) - (y.amt - y.pAmt));
   const lineCols = [{ k: 'd', l: '일자', f: r => mdw(r.d), x: r => r.d }, { k: 'c', l: '거래처', cls: 'nm', f: r => `<span title="${esc(r.c)}">${esc(r.c)}</span>`, x: r => r.c }, { k: 'i', l: '품목', cls: 'nm', f: r => `<span title="${esc(r.i)}">${esc(r.i)}</span>`, x: r => r.i }, COL.q, COL.amt, COL.cost, COL.p, COL.mg];
-  loss.forEach(r => r.mg = r.amt ? r.p / r.amt : null); noCost.forEach(r => r.mg = r.amt ? r.p / r.amt : null);
+  loss.forEach(r => r.mg = r.amt ? r.pp / r.amt : null); noCost.forEach(r => r.mg = r.amt ? r.p / r.amt : null);
+  const PPc = { k: 'pp', l: '유상분 이익', n: 1, f: r => `<b class="${r.pp < 0 ? 'neg' : ''}">${money(r.pp)}</b>`, x: r => Math.round(r.pp) }, FQc = { k: 'fq', l: '무상 수량', n: 1, f: r => r.fq ? `${nf.format(r.fq)} <span class="muted small">${esc(FXL[r.fx] || '미분류')}</span>` : '', x: r => r.fq || '' };
+  const lossCols = lineCols.map(c => c === COL.p ? PPc : c); lossCols.splice(4, 0, FQc);
   const box = (cls, t, n, desc) => `<div class="alert ${n ? cls : 'ok'}" style="cursor:default"><div class="al">${t}</div><div class="av">${n}</div><div class="as">${desc}</div></div>`;
   return fbar() + `<div class="card noprint"><h2>점검 기준</h2><div class="row small">
       이익률 <input class="f" type="number" id="ckMg" value="${C.mg}" style="width:70px">% 미만 ·
       거래처 주간 매출 <input class="f" type="number" id="ckMin" value="${C.minAmt}" style="width:110px">원 이상만 ·
       같은 품목 단가 차이 <input class="f" type="number" id="ckSp" value="${C.spread}" style="width:64px">% 이상 ·
       <input class="f" type="number" id="ckGap" value="${C.gap}" style="width:56px">주 넘게 주문 없으면 거래 끊김 의심</div></div>
-  <div class="alerts">${box('red', '⚠ 역마진 판매', loss.length + '건', `손실 ${kor(-loss.reduce((s, r) => s + r.p, 0))}`)}${box('amb', '❔ 원가 미등록', noCost.length + '건', `매출 ${kor(noCost.reduce((s, r) => s + r.amt, 0))}`)}${box('amb', '📉 이익률 낮은 거래처', low.length + '곳', `${C.mg}% 미만`)}${box('amb', '↔ 단가 차이 큰 품목', spread.length + '개', `거래처마다 ${C.spread}% 이상 차이`)}</div>
-  <div class="card"><h2>⚠ 역마진 판매 <small>원가보다 싸게 판 줄 (제품 판매만)</small><span class="grow"></span><button class="btn sm" data-exp="ckLoss">엑셀</button></h2>${tbl('ckLoss', lineCols, loss, { title: '역마진', limit: 30 })}</div>
+  <div class="alerts">${box('red', '⚠ 역마진 판매', loss.length + '건', `손실 ${kor(-loss.reduce((s, r) => s + r.pp, 0))} · 교환·무상분 제외`)}${box('amb', '❔ 원가 미등록', noCost.length + '건', `매출 ${kor(noCost.reduce((s, r) => s + r.amt, 0))}`)}${box('amb', '📉 이익률 낮은 거래처', low.length + '곳', `${C.mg}% 미만`)}${box('amb', '↔ 단가 차이 큰 품목', spread.length + '개', `거래처마다 ${C.spread}% 이상 차이`)}</div>
+  <div class="card"><h2>⚠ 역마진 판매 <small>돈 받고 판 수량을 원가보다 싸게 판 줄 — 교환·샘플·덤으로 0원에 나간 수량은 빼고 계산 (「전표 점검 → 교환·무상 출고」에서 따로 봄)</small><span class="grow"></span><button class="btn sm" data-exp="ckLoss">엑셀</button></h2>${tbl('ckLoss', lossCols, loss, { title: '역마진', limit: 30 })}</div>
   <div class="card"><h2>❔ 원가 미등록 <small>이카운트에 입고단가가 없어 원가 0원으로 계산된 판매 — 이익이 실제보다 크게 보입니다</small><span class="grow"></span><button class="btn sm" data-exp="ckNo">엑셀</button></h2>${tbl('ckNo', lineCols, noCost, { title: '원가미등록', limit: 30 })}</div>
   <div class="grid2 gapb">
     <div class="card"><h2>📉 이익률 낮은 거래처</h2>${tbl('ckLow', [{ k: 'k', l: '거래처', cls: 'nm', f: r => `<b title="${esc(r.k)}">${esc(r.k)}</b>`, x: r => r.k }, COL.amt, COL.p, COL.mg], low, { title: '이익률낮은거래처', open: 'cust', limit: 20 })}</div>
@@ -812,7 +847,6 @@ function auditBase() {
     const up = r.amt / r.q;
     if (!isInternal(r.c)) { pushM(im, r.i, up); pushM(cm, ck, Math.round(up)); pushM(qm, ck, r.q); }
     if (r.cost > 0) pushM(um, r.i, r.cost / r.q);
-    if (r.u > 0 && r.amt < r.u * r.q - 1) partC.set(r.c, (partC.get(r.c) || 0) + 1);
   });
   const mm = (m, f) => new Map([...m].map(([k, a]) => [k, f(a)]));
   _base = { im: mm(im, a => ({ med: median(a), n: a.length })), cm: mm(cm, modeOf), qm: mm(qm, a => ({ med: median(a), mode: modeOf(a).v, n: a.length })), um: mm(um, a => ({ med: median(a), n: a.length })), partC, sold };
@@ -823,12 +857,11 @@ const AUD = [
   ['costp', '판매 단가에 원가를 넣은 것 같음', 'high', '판매 단가가 원가와 똑같은데, 평소에는 그보다 비싸게 팔던 품목'],
   ['qtyt', '수량 오타 의심', 'high', '평소보다 딱 1개 많은데 금액은 평소 수량 값'],
   ['loss', '역마진 (원가보다 싸게 판 유상 판매)', 'mid', '할인·무상 합의가 없었다면 단가 입력 실수'],
-  ['free', '0원 출고 (거래처)', 'mid', '단가는 있는데 공급가액 0원 — 샘플·서비스인지, 청구를 빠뜨렸는지'],
+  ['free', '교환·무상 출고', 'mid', '0원으로 나간 수량 — 교환·샘플·덤인지 고르면 손실이 아닌 「교환·무상 출고 원가」로 따로 집계됩니다. 「청구 누락」만 오류로 남습니다'],
   ['price', '같은 거래처인데 평소와 다른 단가', 'mid', '평소 단가와 3% 넘게 다른 단가가 한두 번만 나온 줄'],
   ['qty', '수량이 평소의 5배 이상', 'mid', '두 번 입력했거나 수량에 0을 더 붙였는지'],
   ['cost', '원가 단가가 평소와 30% 넘게 다름', 'mid', '이카운트 입고단가가 바뀌었거나 잘못 들어갔는지'],
   ['zero', '원가 0원 판매', 'mid', '입고단가 미등록이면 이익이 실제보다 크게 잡힘'],
-  ['part', '일부만 청구 (덤·할인)', 'low', '수량 일부만 값을 받은 줄 — 같은 거래처에 반복되는 덤(10+1 등)은 기본으로 숨김'],
   ['ret', '반품 확인', 'low', '반품 품목·단가가 원래 판매와 맞는지'],
   ['future', '오늘 이후 날짜', 'low', '미리 잡아 둔 주문인지, 날짜를 잘못 넣었는지']
 ];
@@ -836,7 +869,7 @@ const LV = { high: ['높음', 'red'], mid: ['중간', 'amb'], low: ['낮음', ''
 const MK = [['', '미확인'], ['ok', '정상'], ['fix', '수정 필요'], ['done', '수정함']];
 function audit(a, b, noF) {
   const B = auditBase(), t = todayS(), rows = rowsIn(a, b, noF), out = {}; AUD.forEach(x => out[x[0]] = []);
-  const add = (id, r, why, ex) => out[id].push(Object.assign({ r, why, key: id + '|' + r.d + '|' + r.c + '|' + r.i }, ex || {}));
+  const add = (id, r, why, ex) => out[id].push(Object.assign({ r, why, key: id === 'free' ? fxKey(r) : id + '|' + r.d + '|' + r.c + '|' + r.i }, ex || {}));
   const batch = new Map(); rows.forEach(r => { if (r.line === '제품 판매' && r.amt === 0 && r.q > 0 && !isInternal(r.c)) { const k = r.d + '|' + r.i; batch.set(k, (batch.get(k) || 0) + 1); } });
   rows.forEach(r => {
     if (r.d > t) add('future', r, '오늘 이후 날짜로 들어간 전표');
@@ -850,22 +883,21 @@ function audit(a, b, noF) {
       return;
     }
     if (r.amt === 0) {
-      if (!inn) { const n = batch.get(r.d + '|' + r.i) || 0; add('free', r, n >= 3 ? `같은 날 ${n}곳에 같은 품목 0원 — 청구 누락인지 확인` : r.u ? `정가로 ${n0(r.u * r.q)}원어치 — 샘플·서비스인지 확인` : '샘플·서비스인지 확인'); }
+      if (!inn) { const n = batch.get(r.d + '|' + r.i) || 0; add('free', r, `${nf.format(r.fq)}개 전부 0원 · 원가 ${n0(r.fc)}원${n >= 3 ? ` · 같은 날 ${n}곳에 같은 품목 0원` : ''}${r.fxAuto ? ` · ${r.fxAuto}` : ''}`, { fx: 1 }); }
       return;
     }
-    const up = r.amt / r.q, uc = r.cost / r.q, I = B.im.get(r.i), M = B.cm.get(ck), Q = B.qm.get(ck), U = B.um.get(r.i);
+    const pq = r.pq || r.q, up = r.amt / pq, uc = r.pc / pq, I = B.im.get(r.i), M = B.cm.get(ck), Q = B.qm.get(ck), U = B.um.get(r.i);
     let hi = false;
     const atCost = !inn && r.cost > 0 && Math.abs(up - uc) <= Math.max(1, uc * .002), usual = !atCost ? 0 : M && M.c >= 2 && M.v > uc * 1.05 ? M.v : I && I.med > uc * 1.05 ? I.med : 0;
     if (r.cost > 0 && uc > up * 3) { add('unit', r, `원가 단가 ${n0(uc)}원이 판매 단가 ${n0(up)}원의 ${Math.round(uc / up)}배 — 낱개 수량을 박스 품목에 넣었거나 품목을 잘못 고른 것 같음`); hi = true; }
-    else if (r.cost > 0 && r.p / r.amt > .8) { add('unit', r, `이익률 ${pct(r.p / r.amt, 0)} — 원가가 너무 작게 잡힘 (박스 가격을 낱개 품목에 넣었는지)`); hi = true; }
+    else if (r.cost > 0 && r.pp / r.amt > .8) { add('unit', r, `이익률 ${pct(r.p / r.amt, 0)} — 원가가 너무 작게 잡힘 (박스 가격을 낱개 품목에 넣었는지)`); hi = true; }
     else if (usual) { add('costp', r, `판매 단가가 원가 ${n0(uc)}원과 똑같음 — 평소 단가 ${n0(usual)}원 (평소대로면 이익 +${n0((usual - up) * r.q)}원)`); hi = true; }
     else if (!inn && I && I.n >= 5 && (up < I.med * .4 || up > I.med * 2.5)) { add('unit', r, `판매 단가 ${n0(up)}원 — 다른 거래처 평소 ${n0(I.med)}원의 ${(up / I.med).toFixed(1)}배`); hi = true; }
-    if (r.u > 0 && r.amt < r.u * r.q - 1) {
-      const paidQ = r.amt / r.u, freeQ = r.q - paidQ, rep = (B.partC.get(r.c) || 0) >= 3;
-      if (Q && Math.abs(freeQ - 1) < .01 && Q.mode === r.q - 1 && !rep) { add('qtyt', r, `평소 ${Q.mode}개인데 ${r.q}개, 금액은 ${Q.mode}개 값`); hi = true; }
-      else add('part', r, `${nf.format(r.q)}개 중 ${nf.format(Math.round(paidQ * 100) / 100)}개 값만 청구${rep ? ' · 이 거래처는 덤이 반복됨' : ''}`, { rep });
+    if (r.fq > 0) {
+      if (Q && r.fq === 1 && Q.mode === r.q - 1 && !r.fx && !inn) { add('qtyt', r, `평소 ${Q.mode}개인데 ${r.q}개, 금액은 ${Q.mode}개 값 — 수량 오타가 아니면 「교환·무상」으로 봄`); hi = true; }
+      else if (!inn) add('free', r, `${nf.format(r.q)}개 중 ${nf.format(r.pq)}개만 청구 · ${nf.format(r.fq)}개 무상 (원가 ${n0(r.fc)}원)${r.fxAuto ? ` · ${r.fxAuto}` : ''}`, { fx: 1 });
     }
-    if (r.p < 0) add('loss', r, `원가보다 ${n0(-r.p)}원 싸게 판매`);
+    if (r.pp < 0) add('loss', r, `돈 받은 ${nf.format(pq)}개를 원가보다 ${n0(-r.pp)}원 싸게 판매${r.fq ? ` (무상 ${nf.format(r.fq)}개는 빼고 계산)` : ''}`);
     if (!inn && !hi && M && M.n >= 3 && M.c >= 2) { const rp = Math.round(up), pc = M.m.get(rp) || 0; if (pc <= 2 && rp !== M.v && Math.abs(rp / M.v - 1) > .03) add('price', r, `평소 ${n0(M.v)}원(${M.c}번)인데 ${n0(rp)}원 (${rp > M.v ? '+' : ''}${pct(rp / M.v - 1)})`); }
     if (Q && Q.n >= 4 && r.q >= Q.med * 5 && r.q >= 10) add('qty', r, `평소 ${nf.format(Q.med)}개인데 ${nf.format(r.q)}개 — 두 번 입력했는지 확인`);
     if (U && U.n >= 3 && r.cost > 0 && Math.abs(uc / U.med - 1) > .3) add('cost', r, `원가 단가 ${n0(uc)}원 — 이 품목 평소 ${n0(U.med)}원`);
@@ -882,28 +914,32 @@ function dupCust() {
 function auditHigh(A) { return ['unit', 'costp', 'qtyt'].reduce((s, k) => s + A[k].length, 0); }
 function vAudit() {
   const a = UI.from, b = UI.to, A = audit(a, b), M = DB.audit || {}, hide = UI.audHide, noU = R.length && !R.some(r => r.u != null);
-  const shown = id => A[id].filter(x => !(hide && (M[x.key] === 'ok' || M[x.key] === 'done')) && !(id === 'part' && x.rep && !UI.audRep));
-  const open = id => A[id].filter(x => !M[x.key] || M[x.key] === 'fix').length;
-  const sel = x => `<select class="f mk mk-${M[x.key] || 'none'}" data-mark="${esc(x.key)}">${MK.map(([v, l]) => `<option value="${v}"${(M[x.key] || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+  const solved = x => x.fx ? (x.r.fx && x.r.fx !== 'miss') : (M[x.key] === 'ok' || M[x.key] === 'done');
+  const shown = id => A[id].filter(x => !(hide && solved(x)));
+  const open = id => A[id].filter(x => x.fx ? !x.r.fx || x.r.fx === 'miss' : !M[x.key] || M[x.key] === 'fix').length;
+  const sel = x => x.fx ? `<select class="f mk fx-${x.r.fx || 'none'}" data-mark="${esc(x.key)}" title="${x.r.fxAuto && M[x.key] == null ? '자동: ' + esc(x.r.fxAuto) : ''}">${FXT.map(([v, l]) => `<option value="${v}"${(x.r.fx || '') === v ? ' selected' : ''}>${l}${v && v === x.r.fx && M[x.key] == null ? ' (자동)' : ''}</option>`).join('')}</select>`
+    : `<select class="f mk mk-${M[x.key] || 'none'}" data-mark="${esc(x.key)}">${MK.map(([v, l]) => `<option value="${v}"${(M[x.key] || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
   const cols = [
     { k: 'd', l: '날짜', v: x => x.r.d, f: x => mdw(x.r.d), x: x => x.r.d },
     { k: 'c', l: '거래처', cls: 'nm', v: x => x.r.c, f: x => `<span class="lnk" data-open="cust" data-key="${esc(x.r.c)}" title="${esc(x.r.c)}">${esc(x.r.c)}</span>`, x: x => x.r.c },
     { k: 'i', l: '품목', cls: 'nm', v: x => x.r.i, f: x => `<span class="lnk" data-open="item" data-key="${esc(x.r.i)}" title="${esc(x.r.i)}">${esc(x.r.i)}</span>`, x: x => x.r.i },
-    { k: 'q', l: '수량', n: 1, v: x => x.r.q, f: x => nf.format(x.r.q), x: x => x.r.q },
-    { k: 'up', l: '판매단가', n: 1, v: x => x.r.amt / x.r.q, f: x => n0(x.r.amt / x.r.q), x: x => Math.round(x.r.amt / x.r.q) },
-    { k: 'uc', l: '원가단가', n: 1, v: x => x.r.cost / x.r.q, f: x => n0(x.r.cost / x.r.q), x: x => Math.round(x.r.cost / x.r.q) },
+    { k: 'q', l: '수량', n: 1, v: x => x.r.q, f: x => nf.format(x.r.q) + (x.r.fq ? ` <span class="muted small">(무상 ${nf.format(x.r.fq)})</span>` : ''), x: x => x.r.q },
+    { k: 'up', l: '판매단가', n: 1, v: x => x.r.pq ? x.r.amt / x.r.pq : 0, f: x => x.r.pq ? n0(x.r.amt / x.r.pq) : '—', x: x => x.r.pq ? Math.round(x.r.amt / x.r.pq) : '' },
+    { k: 'uc', l: '원가단가', n: 1, v: x => x.r.q ? x.r.cost / x.r.q : 0, f: x => n0(x.r.cost / x.r.q), x: x => Math.round(x.r.cost / x.r.q) },
     { k: 'amt', l: '공급가액', n: 1, v: x => x.r.amt, f: x => money(x.r.amt), x: x => Math.round(x.r.amt) },
-    { k: 'p', l: '판매이익', n: 1, v: x => x.r.p, f: x => `<b class="${x.r.p < 0 ? 'neg' : ''}">${money(x.r.p)}</b>`, x: x => Math.round(x.r.p) },
+    { k: 'pp', l: '유상분 이익', n: 1, v: x => x.r.pp, f: x => x.r.pq > 0 ? `<b class="${x.r.pp < 0 ? 'neg' : ''}">${money(x.r.pp)}</b>` : '<span class="muted">—</span>', x: x => Math.round(x.r.pp) },
+    { k: 'fc', l: '무상 원가', n: 1, v: x => x.r.fc, f: x => x.r.fc ? money(x.r.fc) : '', x: x => Math.round(x.r.fc || 0) },
     { k: 'why', l: '의심 이유', cls: 'why', v: x => x.why, f: x => esc(x.why), x: x => x.why }
   ];
-  cols.unshift({ k: 'mk', l: '확인', nos: 1, f: sel, x: x => (MK.find(m => m[0] === (M[x.key] || '')) || MK[0])[1] });
+  cols.unshift({ k: 'mk', l: '확인 · 유형', nos: 1, f: sel, x: x => x.fx ? FXL[x.r.fx || ''] : (MK.find(m => m[0] === (M[x.key] || '')) || MK[0])[1] });
   const tiles = AUD.map(([id, t, lv]) => { const n = open(id), tot = A[id].length; return `<a class="alert ${n ? LV[lv][1] : 'ok'}" href="#au-${id}"><div class="al">${t}</div><div class="av">${n}<small class="muted" style="font-size:12px;font-weight:600"> / ${tot}건</small></div><div class="as">오류 가능성 ${LV[lv][0]} · 미확인 ${n}건</div></a>`; }).join('');
-  const secs = AUD.map(([id, t, lv, d]) => { const L = shown(id); if (!A[id].length) return ''; const hidRep = id === 'part' ? A[id].filter(x => x.rep).length : 0;
-    return `<div class="card" id="au-${id}"><h2>${t} <span class="tag ${LV[lv][1]}">오류 가능성 ${LV[lv][0]}</span><small>${d}</small><span class="grow"></span>${id === 'part' && hidRep ? `<label class="small row" style="gap:4px;font-weight:600"><input type="checkbox" id="audRep"${UI.audRep ? ' checked' : ''}> 반복 덤 ${hidRep}건도 보기</label>` : ''}<button class="btn sm" data-exp="au_${id}">엑셀</button></h2>
-      ${tbl('au_' + id, cols, L, { title: t.slice(0, 28), limit: 30, sort: { k: id === 'loss' ? 'p' : 'd', d: id === 'loss' ? 1 : -1 } })}</div>`; }).join('');
+  const FA = freeSum(rowsIn(a, b).filter(r => !isInternal(r.c)));
+  const secs = AUD.map(([id, t, lv, d]) => { const L = shown(id); if (!A[id].length) return ''; const fxBar = id === 'free' ? `<div class="fxsum">${FXT.map(([k, l]) => FA[k].n ? `<span class="tag ${k === 'miss' ? 'red' : k === '' ? 'amb' : 'grn'}">${l} ${FA[k].n}건 · 원가 ${kor(FA[k].fc)}</span>` : '').join(' ')} <span class="muted small">· 같은 거래처에 반복되는 덤, 전달사항에 「교환」「샘플」이 있으면 자동으로 골라 둡니다</span></div>` : '';
+    return `<div class="card" id="au-${id}"><h2>${t} <span class="tag ${LV[lv][1]}">오류 가능성 ${LV[lv][0]}</span><small>${d}</small><span class="grow"></span><button class="btn sm" data-exp="au_${id}">엑셀</button></h2>${fxBar}
+      ${tbl('au_' + id, cols, L, { title: t.slice(0, 28), limit: 30, sort: { k: id === 'loss' ? 'pp' : id === 'free' ? 'fc' : 'd', d: id === 'loss' ? 1 : -1 } })}</div>`; }).join('');
   const D = dupCust();
   return fbar() + `<div class="card noprint"><h2>🔎 전표 점검 — 이카운트 입력 실수 가능성<span class="grow"></span>
-      <label class="small row" style="gap:4px;font-weight:600"><input type="checkbox" id="audHide"${hide ? ' checked' : ''}> 「정상·수정함」으로 표시한 줄 숨기기</label><button class="btn sm" data-act="audxls">전체 엑셀로 저장</button></h2>
+      <label class="small row" style="gap:4px;font-weight:600"><input type="checkbox" id="audHide"${hide ? ' checked' : ''}> 확인을 마친 줄 숨기기 (정상·수정함, 교환·샘플·덤으로 정한 줄)</label><button class="btn sm" data-act="audxls">전체 엑셀로 저장</button></h2>
     <div class="muted small" style="line-height:1.7">조회 기간(${esc(rangeText(a, b))})의 판매 줄을 점검합니다. 1년 치를 한 번에 보려면 위에서 「올해」를 누르세요. 줄마다 「확인」을 정상·수정 필요·수정함으로 바꿔 두면 이 기기에 저장되어 다음 점검 때 남은 것만 볼 수 있습니다.<br>
     내부 거래(영업용·회장님·자사 원가 공급)는 단가 비교와 0원 출고에서 뺍니다 — 「자료 올리기 → 거래처 분류」의 「내부」 칸으로 바꿀 수 있습니다. 판매현황이 일별·거래처별·품목별 합계라 같은 날 두 번 입력한 전표는 수량이 합쳐져 「수량이 평소의 5배 이상」으로만 드러납니다.${noU ? '<br><b class="neg">이전에 올린 자료에는 「단가」 열이 없어 일부만 청구·수량 오타 점검을 못 합니다 — 판매현황을 한 번 다시 올려 주세요.</b>' : ''}</div></div>
   <div class="alerts" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${tiles}</div>
@@ -919,7 +955,7 @@ function vRows() {
   L.forEach(r => { r.mg = r.amt ? r.p / r.amt : null; });
   const T = total(L);
   const cols = [{ k: 'd', l: '일자', f: r => mdw(r.d), x: r => r.d }, { k: 'c', l: '거래처', cls: 'nm', f: r => `<span title="${esc(r.c)}">${esc(r.c)}</span>`, x: r => r.c }, { k: 'i', l: '품목', cls: 'nm', f: r => `<span title="${esc(r.i)}">${esc(r.i)}</span>`, x: r => r.i }, { k: 'kind', l: '구분', f: r => `<span class="tag">${esc(r.kind)}</span>`, x: r => r.kind },
-    COL.q, { k: 'up', l: '단가', n: 1, v: r => r.q ? r.amt / r.q : 0, f: r => nf.format(Math.round(r.q ? r.amt / r.q : 0)), x: r => Math.round(r.q ? r.amt / r.q : 0) }, COL.amt, COL.cost, COL.p, COL.mg, COL.tot, { k: 'memo', l: '전달사항', cls: 'nm', f: r => `<span class="muted small">${esc(r.memo || '')}</span>`, x: r => r.memo || '' }];
+    COL.q, { k: 'fq', l: '무상', n: 1, f: r => r.fq ? `${nf.format(r.fq)} <span class="muted small">${esc(FXL[r.fx] || '미분류')}</span>` : '', x: r => r.fq ? `${r.fq} ${FXL[r.fx] || '미분류'}` : '' }, { k: 'up', l: '판매단가', n: 1, v: r => r.pq ? r.amt / r.pq : 0, f: r => r.pq > 0 ? nf.format(Math.round(r.amt / r.pq)) : '—', x: r => r.pq > 0 ? Math.round(r.amt / r.pq) : '' }, COL.amt, COL.cost, COL.p, COL.mg, COL.tot, { k: 'memo', l: '전달사항', cls: 'nm', f: r => `<span class="muted small">${esc(r.memo || '')}</span>`, x: r => r.memo || '' }];
   return fbar() + `<div class="card"><h2>판매 내역 <small>${nf.format(L.length)}줄</small><span class="grow"></span><input class="f" id="rowsQ" placeholder="거래처·품목·전달사항 찾기" value="${esc(UI.rowsQ || '')}" style="width:220px"><button class="btn sm" data-exp="rows">엑셀</button></h2>
     ${tbl('rows', cols, L, { title: '판매내역', foot: T, limit: 300 })}</div>`;
 }
@@ -991,7 +1027,7 @@ function reportBody(type, key, withAll) {
   const mvC = moves(cmA, pmC), mvI = moves(imA, pmI);
   const upC = mvC.filter(o => o.d > 0).sort((x, y) => y.d - x.d).slice(0, 5), dnC = mvC.filter(o => o.d < 0).sort((x, y) => x.d - y.d).slice(0, 5);
   const upI = mvI.filter(o => o.d > 0).sort((x, y) => y.d - x.d).slice(0, 5), dnI = mvI.filter(o => o.d < 0).sort((x, y) => x.d - y.d).slice(0, 5);
-  const prod = cur.filter(r => r.line === '제품 판매'), loss = prod.filter(r => r.p < 0 && r.amt > 0).sort((x, y) => x.p - y.p), noCost = prod.filter(r => r.cost === 0 && r.amt > 0);
+  const prod = cur.filter(r => r.line === '제품 판매'), loss = prod.filter(r => r.pq > 0 && r.pp < 0).sort((x, y) => x.pp - y.pp), noCost = prod.filter(r => r.cost === 0 && r.amt > 0), FS = freeSum(cur);
   const low = cm.filter(o => o.amt >= UI.chk.minAmt * (W ? 1 : 4) && o.mg != null && o.mg * 100 < UI.chk.mg).sort((x, y) => x.mg - y.mg);
   const news = cm.filter(o => firstSale(o.k) >= a).sort((x, y) => y.amt - x.amt), lost = lostCust(e, true), AU = audit(a, b, true), auHi = auditHigh(AU);
   const freeN = AU.free.length, top10p = cm.slice(0, 10).reduce((s, o) => s + o.p, 0);
@@ -1001,9 +1037,10 @@ function reportBody(type, key, withAll) {
   const bl = [];
   bl.push(`${cn} 매출 <b>${kor(T.amt)}</b>, 판매이익 <b>${kor(T.p)}</b>, 이익률 <b>${pct(T.mg)}</b>`);
   if (P.n) bl.push(`${pn} 대비 매출 <b>${sgn(dA)}${pct(dA)}</b>(${sgn(T.amt - P.amt)}${kor(T.amt - P.amt)}), 이익 <b>${sgn(dP)}${pct(dP)}</b>(${sgn(T.p - P.p)}${kor(T.p - P.p)}), 이익률 ${pp(T.mg, P.mg)}`);
+  if (T.fc > 0) bl.push(`교환·무상 출고 원가 <b>${kor(T.fc)}</b> (${FXT.filter(([k]) => FS[k].fc > 0).map(([k, l]) => `${l.replace(' (수정 필요)', '')} ${kor(FS[k].fc)}`).join(' · ')}) — 빼면 판매이익 ${kor(T.pp)}, 이익률 ${pct(T.pmg)}`);
   if (cm[0]) bl.push(`이익 1위 거래처 <b>${esc(cut(cm[0].k, 26))}</b> ${kor(cm[0].p)} · 1위 품목 <b>${esc(cut(im[0] ? im[0].k : '', 26))}</b> ${kor(im[0] ? im[0].p : 0)}`);
   if (upC[0] || dnC[0]) bl.push(`${upC[0] ? `이익 증가 1위 ${esc(cut(upC[0].k, 20))}(+${kor(upC[0].d)})` : ''}${upC[0] && dnC[0] ? ' · ' : ''}${dnC[0] ? `감소 1위 ${esc(cut(dnC[0].k, 20))}(${kor(dnC[0].d)})` : ''}`);
-  const chk = [auHi ? `전표 오류 의심 ${auHi}건` : '', loss.length ? `역마진 ${loss.length}건` : '', lost.length ? `거래 끊김 의심 ${lost.length}곳` : ''].filter(Boolean);
+  const chk = [auHi ? `전표 오류 의심 ${auHi}건` : '', loss.length ? `역마진 ${loss.length}건` : '', FS[''].n ? `교환·무상 미분류 ${FS[''].n}건` : '', FS.miss.n ? `청구 누락 ${FS.miss.n}건` : '', lost.length ? `거래 끊김 의심 ${lost.length}곳` : ''].filter(Boolean);
   bl.push(chk.length ? `확인 필요: <b>${chk.join(' · ')}</b> → 마지막 쪽 참고` : '특별히 확인할 사항이 없습니다');
   /* 표 정의 */
   const nm = (l, n = 24) => ({ k: 'k', l, cls: 'nm', f: r => `<span title="${esc(r.k)}">${esc(cut(r.k, n))}</span>`, x: r => r.k });
@@ -1017,11 +1054,11 @@ function reportBody(type, key, withAll) {
   const grpColsS = l => [{ k: 'k', l, f: r => esc(r.k), x: r => r.k }, COL.amt, COL.p, COL.mg, share(T.amt, 'amt')];
   const lineCols = [{ k: 'd', l: '날짜', f: x => mdw(x.r.d), x: x => x.r.d }, { k: 'c', l: '거래처', cls: 'nm', f: x => esc(cut(x.r.c, 16)), x: x => x.r.c }, { k: 'i', l: '품목', cls: 'nm', f: x => esc(cut(x.r.i, 20)), x: x => x.r.i }, { k: 'why', l: '의심 이유', cls: 'why', f: x => esc(cut(x.why, 54)), x: x => x.why }];
   /* 비교표 */
-  const cmpRow = (l, f, fmt, isPct) => { const c = f(T), p = f(P), d = c == null || p == null ? null : c - p;
-    const extra = W ? [f(M0)] : [LYM.n ? f(LYM) : null]; return { l, c, p, d, r: isPct ? null : chg(c, p), ex: extra[0], y: f(Y), fmt, isPct }; };
+  const cmpRow = (l, f, fmt, isPct, inv) => { const c = f(T), p = f(P), d = c == null || p == null ? null : c - p;
+    const extra = W ? [f(M0)] : [LYM.n ? f(LYM) : null]; return { l, c, p, d, r: isPct ? null : chg(c, p), ex: extra[0], y: f(Y), fmt, isPct, inv }; };
   const perDay = o => o.nd ? o.amt / o.nd : 0;
-  const CR = [cmpRow('매출 (공급가액)', o => o.amt, money), cmpRow('원가', o => o.cost, money), cmpRow('판매이익', o => o.p, money), cmpRow('이익률', o => o.mg, v => pct(v), true), cmpRow('거래처 수', o => o.nc, v => nf.format(v)), cmpRow('판매 건수', o => o.n, v => nf.format(v)), cmpRow('판매일 하루 평균 매출', perDay, money)];
-  const cmpTbl = `<table class="t ctbl"><thead><tr><th></th><th class="n">${cn}</th><th class="n">${pn}</th><th class="n">증감</th><th class="n">증감률</th><th class="n">${W ? '이번 달 누계' : '작년 같은 달'}</th><th class="n">올해 누계</th></tr></thead><tbody>${CR.map(o => `<tr><td><b>${o.l}</b></td><td class="n"><b>${o.c == null ? '—' : o.fmt(o.c)}</b></td><td class="n">${o.p == null || !P.n ? '—' : o.fmt(o.p)}</td><td class="n">${!P.n || o.d == null ? '—' : o.isPct ? pp(o.c, o.p) : `<span class="${o.d < 0 ? 'neg' : ''}">${o.d > 0 ? '+' : ''}${o.fmt(o.d)}</span>`}</td><td class="n">${o.isPct || !P.n ? '' : dlt(o.r)}</td><td class="n">${o.ex == null ? '—' : o.fmt(o.ex)}</td><td class="n">${o.fmt(o.y)}</td></tr>`).join('')}</tbody></table>`;
+  const CR = [cmpRow('매출 (공급가액)', o => o.amt, money), cmpRow('원가', o => o.cost, money, false, true), cmpRow('판매이익', o => o.p, money), cmpRow('이익률', o => o.mg, v => pct(v), true), cmpRow('└ 교환·무상 출고 원가', o => o.fc, money, false, true), cmpRow('└ 교환·무상 빼면 판매이익', o => o.pp, money), cmpRow('거래처 수', o => o.nc, v => nf.format(v)), cmpRow('판매 건수', o => o.n, v => nf.format(v)), cmpRow('판매일 하루 평균 매출', perDay, money)];
+  const cmpTbl = `<table class="t ctbl"><thead><tr><th></th><th class="n">${cn}</th><th class="n">${pn}</th><th class="n">증감</th><th class="n">증감률</th><th class="n">${W ? '이번 달 누계' : '작년 같은 달'}</th><th class="n">올해 누계</th></tr></thead><tbody>${CR.map(o => `<tr class="${o.inv ? 'inv' : ''}"><td><b>${o.l}</b></td><td class="n"><b>${o.c == null ? '—' : o.fmt(o.c)}</b></td><td class="n">${o.p == null || !P.n ? '—' : o.fmt(o.p)}</td><td class="n">${!P.n || o.d == null ? '—' : o.isPct ? pp(o.c, o.p) : `<span class="${o.d < 0 ? 'neg' : ''}">${o.d > 0 ? '+' : ''}${o.fmt(o.d)}</span>`}</td><td class="n">${o.isPct || !P.n ? '' : dlt(o.r)}</td><td class="n">${o.ex == null ? '—' : o.fmt(o.ex)}</td><td class="n">${o.fmt(o.y)}</td></tr>`).join('')}</tbody></table>`;
   /* 추이 */
   const S = series(cur, a, b, W ? 'day' : 'week'); S.forEach((p, i) => { p.tipLabel = p.g === 'week' ? `${i + 1}주 (${p.label})` : p.label; });
   const perCols = [{ k: 'label', l: W ? '일자' : '주', f: r => esc(r.tipLabel), x: r => r.tipLabel }, COL.amt, COL.cost, COL.p, COL.mg, COL.nc, COL.n];
@@ -1065,9 +1102,10 @@ function reportBody(type, key, withAll) {
   const hiL = [...AU.unit, ...AU.costp, ...AU.qtyt].sort((x, y) => x.r.d < y.r.d ? -1 : 1);
   const tile = (t, n, cls, s) => `<div class="ck ${n ? cls : 'ok'}"><div class="cl">${t}</div><div class="cv">${n}</div><div class="cs">${s}</div></div>`;
   pages.push(`${sec('확인이 필요한 사항', '이카운트 전표·거래처 관리 확인용')}
-    <div class="ck6">${tile('전표 오류 의심', auHi, 'red', '단위·품목, 원가=단가, 수량')}${tile('역마진 (유상)', loss.length, 'red', loss.length ? '손실 ' + kor(-loss.reduce((s, r) => s + r.p, 0)) : '없음')}${tile('원가 0원', noCost.length, 'amb', noCost.length ? '매출 ' + kor(noCost.reduce((s, r) => s + r.amt, 0)) : '없음')}${tile('0원 출고', freeN, 'amb', '샘플·서비스 여부')}${tile('거래 끊김 의심', lost.length, 'amb', `${UI.chk.gap}주 넘게 주문 없음`)}${tile('신규 거래처', news.length, 'grn', '이 기간 첫 거래')}</div>
+    <div class="ck6">${tile('전표 오류 의심', auHi, 'red', '단위·품목, 원가=단가, 수량')}${tile('역마진 (유상)', loss.length, 'red', loss.length ? '손실 ' + kor(-loss.reduce((s, r) => s + r.pp, 0)) : '없음')}${tile('원가 0원', noCost.length, 'amb', noCost.length ? '매출 ' + kor(noCost.reduce((s, r) => s + r.amt, 0)) : '없음')}${tile('교환·무상 출고', FS.n, FS[''].n || FS.miss.n ? 'amb' : 'grn', '원가 ' + kor(FS.fc) + (FS[''].n ? ` · 미분류 ${FS[''].n}` : ''))}${tile('거래 끊김 의심', lost.length, 'amb', `${UI.chk.gap}주 넘게 주문 없음`)}${tile('신규 거래처', news.length, 'grn', '이 기간 첫 거래')}</div>
     ${sec('전표 오류 의심', `오류 가능성 높음 · ${hiL.length > 8 ? `상위 8건 / 전체 ${hiL.length}건 — 나머지는 「전표 점검」 화면` : `${hiL.length}건`}`)}${hiL.length ? rtbl('rpAu', lineCols, hiL.slice(0, 8), { title: '전표오류의심' }) : '<div class="note">의심되는 전표가 없습니다.</div>'}
-    ${loss.length ? `${sec('역마진 판매', `손실이 큰 순 · ${Math.min(5, loss.length)} / ${loss.length}건`)}${rtbl('rpLoss', [{ k: 'd', l: '날짜', f: r => mdw(r.d), x: r => r.d }, { k: 'c', l: '거래처', cls: 'nm', f: r => esc(cut(r.c, 16)), x: r => r.c }, { k: 'i', l: '품목', cls: 'nm', f: r => esc(cut(r.i, 22)), x: r => r.i }, COL.amt, COL.p], loss.slice(0, 5), { title: '역마진' })}` : ''}
+    ${loss.length ? `${sec('역마진 판매', `손실이 큰 순 · ${Math.min(5, loss.length)} / ${loss.length}건`)}${rtbl('rpLoss', [{ k: 'd', l: '날짜', f: r => mdw(r.d), x: r => r.d }, { k: 'c', l: '거래처', cls: 'nm', f: r => esc(cut(r.c, 16)), x: r => r.c }, { k: 'i', l: '품목', cls: 'nm', f: r => esc(cut(r.i, 22)), x: r => r.i }, COL.amt, { k: 'pp', l: '유상분 이익', n: 1, f: r => `<b class="neg">${money(r.pp)}</b>`, x: r => Math.round(r.pp) }], loss.slice(0, 5), { title: '역마진' })}` : ''}
+    ${FS.n ? `${sec('교환·무상 출고', `0원으로 나간 수량의 원가 · 단위 ${unit} · 유형은 「전표 점검」 화면에서 정함`)}${rtbl('rpFree', [{ k: 'k', l: '유형', f: r => `<b>${esc(r.l)}</b>`, x: r => r.l }, { k: 'n', l: '줄 수', n: 1, f: r => nf.format(r.n) }, { k: 'fq', l: '무상 수량', n: 1, f: r => nf.format(Math.round(r.fq)) }, { k: 'fc', l: '원가', n: 1, f: r => money(r.fc), x: r => Math.round(r.fc) }, { k: 'sh', l: '비중', n: 1, f: r => pct(FS.fc ? r.fc / FS.fc : null, 0), x: r => FS.fc ? Math.round(r.fc / FS.fc * 1000) / 10 : '' }], FXT.filter(([k]) => FS[k].n).map(([k, l]) => Object.assign({ k, l }, FS[k])), { title: '교환무상출고', foot: Object.assign({ l: '합계', fq: FXT.reduce((t, [k]) => t + FS[k].fq, 0) }, FS) })}` : ''}
     <div class="two"><div>${sec('거래 끊김 의심', `${lost.length > 5 ? `5 / ${lost.length}곳 · ` : ''}최근 12주 단골 · ${md(e)} 기준`)}${lost.length ? rtbl('rpLost', [nm('거래처', 18), { k: 'last', l: '마지막 주문', f: r => mdw(r.last), x: r => r.last }], lost.slice(0, 5), { title: '거래끊김' }) : '<div class="note">없음</div>'}</div>
       <div>${sec('신규 거래처', news.length > 5 ? `매출 순 5 / ${news.length}곳` : '')}${news.length ? rtbl('rpNew', [nm('거래처', 18), COL.amt, COL.p], news.slice(0, 5), { title: '신규거래처' }) : '<div class="note">없음</div>'}</div></div>
     <div class="memo"><div class="st">지시 · 검토 사항</div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>`);
@@ -1084,7 +1122,7 @@ let REP = null;
 function repExcel() {
   if (!REP) return; const { title, CR, pn, cn, W, name } = REP, r1 = v => v == null ? '' : Math.round(v * 1000) / 10;
   const aoa1 = [[name], [title], [], ['항목', cn, pn, '증감', '증감률(%)', W ? '이번 달 누계' : '작년 같은 달', '올해 누계'], ...CR.map(o => o.isPct ? [o.l, r1(o.c), r1(o.p), o.c != null && o.p != null ? r1(o.c - o.p) : '', '', r1(o.ex), r1(o.y)] : [o.l, Math.round(o.c || 0), Math.round(o.p || 0), Math.round(o.d || 0), r1(o.r), o.ex == null ? '' : Math.round(o.ex), Math.round(o.y || 0)]), [], ['핵심 요약'], ...REP.bl.map(x => [strip(x)])];
-  const sh = [['요약', aoa1]]; ['rpM', 'rpPer', 'rpC', 'rpCu', 'rpCd', 'rpI', 'rpIu', 'rpId', 'rpK', 'rpG', 'rpL', 'rpLow', 'rpAu', 'rpLoss', 'rpLost', 'rpNew', 'rpAll'].forEach(id => { if (EXP[id] && EXP[id].rows.length) sh.push([EXP[id].title, expAoa(EXP[id])]); });
+  const sh = [['요약', aoa1]]; ['rpM', 'rpPer', 'rpC', 'rpCu', 'rpCd', 'rpI', 'rpIu', 'rpId', 'rpK', 'rpG', 'rpL', 'rpLow', 'rpAu', 'rpLoss', 'rpFree', 'rpLost', 'rpNew', 'rpAll'].forEach(id => { if (EXP[id] && EXP[id].rows.length) sh.push([EXP[id].title, expAoa(EXP[id])]); });
   const keepUnit = UI.unit; UI.unit = UI.rep.unit || 'k'; try { xlsxSave(sh, `판매이익보고_${W ? '주간' : '월간'}_${REP.a}.xlsx`); } finally { UI.unit = keepUnit; }
 }
 
@@ -1211,7 +1249,7 @@ async function restore(file) {
     if (!confirm(`백업(${String(o.at || '').slice(0, 10)}, ${nf.format(o.rows.length)}줄)으로 구글 시트의 판매·품목·거래처·점검 자료를 모두 바꿀까요?`)) return;
     DB_KEYS.forEach(k => { if (o[k] !== undefined) DB[k] = o[k]; });
     toast('구글 시트에 저장하는 중…');
-    await api('putAll', { sales: DB.rows.map(saleRow), items: itemRows(), cust: custRows().map(r => [r[0], r[1], r[2], r[3] === true ? 'Y' : r[3] === false ? 'N' : '']), audit: Object.entries(DB.audit || {}).map(([k, v]) => [k, v, '', SRV.user]), file: file.name });
+    await api('putAll', { sales: DB.rows.map(saleRow), items: itemRows(), cust: custRows().map(r => [r[0], r[1], r[2], r[3] === true ? 'Y' : r[3] === false ? 'N' : '']), audit: Object.entries(DB.audit || {}).map(([k, v]) => [k, v === '' ? '-' : v, '', SRV.user]), file: file.name });
     await syncLoad(true); toast('백업을 불러왔습니다');
   } catch (e) { toast(e.message || '불러오지 못했습니다'); }
 }
@@ -1245,7 +1283,7 @@ function fromServer(j) {
   DB.rows = j.sales.map(a => { const r = { d: String(a[0]).slice(0, 10), c: String(a[1]), i: String(a[2]), q: n(a[3]), cost: n(a[4]), amt: n(a[5]), tot: n(a[6]), p: n(a[7]), memo: String(a[9] == null ? '' : a[9]) }; if (a[8] !== '' && a[8] != null) r.u = n(a[8]); return r; });
   DB.items = {}; j.items.forEach(a => { if (a[0] !== '') DB.items[String(a[0])] = { code: String(a[1]), kind: String(a[2]), vendor: String(a[3]), grp: String(a[4]), unit: String(a[5]), inP: n(a[6]), outP: n(a[7]) }; });
   DB.cust = {}; j.cust.forEach(a => { if (a[0] === '') return; const o = {}; if (a[1] !== '') o.grp = String(a[1]); if (a[2] !== '') o.region = String(a[2]); if (a[3] === 'Y') o.internal = true; if (a[3] === 'N') o.internal = false; DB.cust[String(a[0])] = o; });
-  DB.audit = {}; j.audit.forEach(a => { if (a[0] !== '' && a[1]) DB.audit[String(a[0])] = String(a[1]); });
+  DB.audit = {}; j.audit.forEach(a => { if (a[0] !== '' && a[1]) DB.audit[String(a[0])] = a[1] === '-' ? '' : String(a[1]); });
   const T = { '판매현황': 'sales', '품목등록': 'items', '백업 불러오기': 'restore' };
   DB.uploads = j.uploads.map(a => ({ at: String(a[0]), type: T[a[1]] || 'sales', file: String(a[2]), from: String(a[3] || ''), to: String(a[4] || ''), n: n(a[5]), replaced: a[6] === '' ? null : n(a[6]), amt: a[7] === '' ? null : n(a[7]), user: String(a[8] || '') }));
   const iu = DB.uploads.find(u => u.type === 'items'); DB.itemsAt = iu ? iu.at : ''; DB.itemsFile = iu ? iu.file : '';
@@ -1380,7 +1418,13 @@ document.addEventListener('change', e => {
   if (['pvR', 'pvC', 'pvV', 'pvT'].includes(t.id)) { UI.pv = { r: $('#pvR').value, c: $('#pvC').value, v: $('#pvV').value, top: +$('#pvT').value }; saveUI(); render(); return; }
   if (['ckMg', 'ckMin', 'ckSp', 'ckGap'].includes(t.id)) { UI.chk = { mg: +$('#ckMg').value || 0, minAmt: +$('#ckMin').value || 0, spread: +$('#ckSp').value || 0, gap: Math.max(1, +$('#ckGap').value || 3) }; saveUI(); render(); return; }
   if (t.id === 'repKey') { UI.rep.key = t.value; saveUI(); render(); return; }
-  if (t.dataset.mark != null) { DB.audit = DB.audit || {}; if (t.value) DB.audit[t.dataset.mark] = t.value; else delete DB.audit[t.dataset.mark]; if (srvOn()) api('mark', { key: t.dataset.mark, status: t.value }).catch(e => toast('구글 시트에 저장하지 못했습니다: ' + e.message)); dbSave('audit'); t.className = 'f mk mk-' + (t.value || 'none'); if (UI.audHide && (t.value === 'ok' || t.value === 'done')) rerender(); return; }
+  if (t.dataset.mark != null) {
+    const k = t.dataset.mark, fx = k.startsWith('fx|'); DB.audit = DB.audit || {};
+    if (fx) DB.audit[k] = t.value; else if (t.value) DB.audit[k] = t.value; else delete DB.audit[k];   /* 교환·무상 유형은 「미분류」로 되돌린 것도 기억 (자동 판단보다 우선) */
+    if (srvOn()) api('mark', { key: k, status: fx && !t.value ? '-' : t.value }).catch(e => toast('구글 시트에 저장하지 못했습니다: ' + e.message));
+    dbSave('audit');
+    if (fx) { splitFree(); rerender(); toast(`「${FXL[t.value] || '미분류'}」(으)로 정했습니다`); return; }
+    t.className = 'f mk mk-' + (t.value || 'none'); if (UI.audHide && (t.value === 'ok' || t.value === 'done')) rerender(); return; }
   if (t.id === 'audHide' || t.id === 'audRep') { UI[t.id] = t.checked; saveUI(); rerender(); return; }
   if (t.id === 'repUnit') { UI.rep.unit = t.value; saveUI(); render(); return; }
   if (t.id === 'repAll') { UI.rep.all = t.checked; saveUI(); render(); return; }
