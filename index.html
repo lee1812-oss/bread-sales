@@ -1003,8 +1003,27 @@ function vReport() {
     <select class="f" id="repKey">${ks.map(k => `<option value="${k}"${k === P.key ? ' selected' : ''}>${P.type === 'week' ? `${k.slice(0, 4)}년 ${weekName(k)} (${md(k)}~${md(addD(k, 6))})` : moName(k)}</option>`).join('')}</select>
     <select class="f" id="repUnit" aria-label="보고서 금액 단위">${[['won', '원'], ['k', '천원'], ['m', '만원']].map(([v, l]) => `<option value="${v}"${(P.unit || 'k') === v ? ' selected' : ''}>표 단위 ${l}</option>`).join('')}</select>
     <label class="small row" style="gap:4px"><input type="checkbox" id="repAll"${P.all ? ' checked' : ''}> 부록: 거래처 전체 목록</label>
-    <span class="grow" style="flex:1"></span><button class="btn" data-act="repxls">엑셀로 저장</button><button class="btn pri" data-act="print">🖨 인쇄 · PDF 저장</button></div>
+    <span class="grow" style="flex:1"></span><button class="btn" data-act="repxls">엑셀로 저장</button><button class="btn" data-act="rephtml" title="임원분들께 보낼 보고서 파일 — 받는 분은 인터넷·비밀번호 없이 열어 보고 인쇄할 수 있습니다">📄 HTML로 저장 (임원 공유)</button><button class="btn pri" data-act="print">🖨 인쇄 · PDF 저장</button></div>
+    <div class="rp-tools noprint" style="align-items:flex-start"><label class="small" style="display:flex;flex-direction:column;gap:3px;font-weight:700">작성자<input class="f" id="repAuthor" value="${esc(P.author || '')}" placeholder="이름" style="width:120px"></label>
+      <label class="small" style="display:flex;flex-direction:column;gap:3px;font-weight:700;flex:1 1 320px">작성자 보고 의견 <span class="muted" style="font-weight:500">(이 ${P.type === 'week' ? '주' : '달'} 보고서 1쪽에 들어갑니다 · 한 줄에 하나씩)</span><textarea class="f" id="repNote" rows="3" placeholder="예: 대형 거래처 A사 납품 증가로 매출 상승, 원가 상승 품목 단가 협의 필요" style="width:100%;resize:vertical">${esc((P.notes || {})[P.type + ':' + P.key] || '')}</textarea></label></div>
     ${report(P.type, P.key, P.all)}`;
+}
+/* 임원 공유용 HTML — 지금 화면의 보고서를 스타일·로고까지 한 파일에 담아 저장 (받는 분은 인터넷·비밀번호 없이 열람·인쇄) */
+async function repHtml() {
+  const rep = document.getElementById('rep'); if (!rep || !REP) { toast('보고서를 먼저 열어 주세요'); return; }
+  if (!UI.rep.author) { const nm = prompt('보고서 작성자 이름을 넣어 주세요 (보고서 결재란 「담당」에 들어갑니다)', ''); if (nm && nm.trim()) { UI.rep.author = nm.trim(); saveUI(); render(); } }
+  render();   /* 그래프까지 새로 그린 화면을 담음 */
+  const el = document.getElementById('rep'); if (!el) return; const css = [...document.querySelectorAll('style')].map(s => s.textContent).join('\n');
+  let logo = ''; try { const b = await (await fetch('brand_logo.png')).blob(); logo = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }); } catch (e) {}
+  let body = el.outerHTML; if (logo) body = body.split('src="brand_logo.png"').join('src="' + logo + '"');
+  const d = new Date(), p2 = n => String(n).padStart(2, '0'), made = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`, who = UI.rep.author || '';
+  const doc = `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(REP.name)} · ${esc(REP.title)}</title><style>${css}
+body{background:#E9EEF1}main{padding:16px 10px 30px}.share-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;background:#173F4B;color:#fff;font-size:13.5px}.share-bar b{font-size:15px}.share-bar span{opacity:.8}.share-bar button{margin-left:auto;border:0;border-radius:8px;padding:7px 14px;background:#fff;color:#173F4B;font-weight:800;cursor:pointer}
+@media print{.share-bar{display:none!important}main{padding:0}body{background:#fff}}</style></head>
+<body><div class="share-bar"><b>빵을그리다 · ${esc(REP.name)}</b><span>${esc(REP.title)} · 작성 ${esc(who || '—')} · ${made}</span><button onclick="window.print()">🖨 인쇄 · PDF 저장</button></div><main>${body}</main></body></html>`;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html;charset=utf-8' }));
+  a.download = `판매이익_${REP.type === 'week' ? '주간' : '월간'}보고_${REP.a}${who ? '_' + who : ''}.html`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  toast('HTML 보고서를 저장했습니다 — 메일·카톡으로 임원분들께 보내면 열어 보고 인쇄할 수 있습니다');
 }
 /* ── 보고서: A4 한 장씩 (주간 4쪽 · 월간 5쪽) ──
    쪽마다 표 길이를 정해 두어 인쇄했을 때 넘치지 않게 합니다. 금액 단위는 보고서 단위(기본 천원). */
@@ -1068,7 +1087,7 @@ function reportBody(type, key, withAll) {
   const sec = (t, sub) => `<h3>${t}${sub ? `<small>${sub}</small>` : ''}</h3>`;
   /* 1쪽: 요약 */
   pages.push(`<div class="rp-head"><div class="rp-left"><img class="rp-logo" src="brand_logo.png" alt="" onerror="this.style.display='none'"><div><div class="rp-co">빵을그리다 주식회사</div><h1>${name}</h1><div class="rp-per">${esc(title)}</div></div></div>
-      <table class="sign"><tr><th>담당</th><th>팀장</th><th>대표이사</th></tr><tr><td></td><td></td><td></td></tr></table></div>
+      <table class="sign"><tr><th>담당</th><th>팀장</th><th>대표이사</th></tr><tr><td style="font-weight:700;font-size:12px">${esc(UI.rep.author || '')}</td><td></td><td></td></tr></table></div>
     <div class="rk4">
       <div class="rk"><div class="kl">매출 (공급가액)</div><div class="kv">${kor(T.amt)}</div><div class="ks">${dlt(dA)} ${pn} ${kor(P.amt)}</div></div>
       <div class="rk main"><div class="kl">판매이익</div><div class="kv">${kor(T.p)}</div><div class="ks">${dlt(dP)} ${pn} ${kor(P.p)}</div></div>
@@ -1076,6 +1095,7 @@ function reportBody(type, key, withAll) {
       <div class="rk"><div class="kl">거래처 · 판매 건수</div><div class="kv">${T.nc}곳 · ${nf.format(T.n)}건</div><div class="ks">신규 ${news.length}곳 · ${pn} ${P.nc}곳</div></div>
     </div>
     <div class="rp-sum"><div class="st">핵심 요약</div><ol>${bl.map(x => `<li>${x}</li>`).join('')}</ol></div>
+    ${(() => { const nt = String((UI.rep.notes || {})[type + ':' + key] || '').split('\n').map(x => x.trim()).filter(Boolean); return nt.length ? `<div class="rp-sum" style="border-left-color:var(--accent);background:#F1F8F6;margin-top:6px"><div class="st" style="color:var(--accent)">작성자 의견${UI.rep.author ? ` · ${esc(UI.rep.author)}` : ''}</div><ol>${nt.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''; })()}
     ${sec(`${W ? '일별' : '주별'} 매출 · 이익`, '막대 = 매출(회색 원가 + 파랑 이익) · 위 숫자 = 이익률')}${chart({ pts: S, h: 190, fixed: 700 })}
     ${sec(`${pn} · 누계 비교`, `단위 ${unit}`)}${cmpTbl}`);
   /* (월간) 2쪽: 추이 */
@@ -1406,6 +1426,7 @@ document.addEventListener('click', e => {
     case 'wipe': if (confirm('이 기기에 저장된 판매 자료·품목등록·거래처 분류를 모두 지울까요? (먼저 백업을 내보내 두세요)')) { DB.rows = []; DB.items = {}; DB.itemsAt = ''; DB.uploads = []; DB.cust = {}; DB.audit = {}; dbSave().then(afterData); } break;
     case 'print': window.print(); break;
     case 'repxls': repExcel(); break;
+    case 'rephtml': repHtml(); break;
     case 'audxls': { const sh = AUD.filter(x => EXP['au_' + x[0]] && EXP['au_' + x[0]].rows.length).map(x => [x[1].slice(0, 28), expAoa(EXP['au_' + x[0]])]); if (EXP.au_dupc) sh.push(['거래처 중복', expAoa(EXP.au_dupc)]); if (!sh.length) { toast('저장할 점검 결과가 없습니다'); break; } xlsxSave(sh, `전표점검_${UI.from}_${UI.to}.xlsx`); break; }
   }
 });
@@ -1429,6 +1450,8 @@ document.addEventListener('change', e => {
   if (t.id === 'audHide' || t.id === 'audRep') { UI[t.id] = t.checked; saveUI(); rerender(); return; }
   if (t.id === 'repUnit') { UI.rep.unit = t.value; saveUI(); render(); return; }
   if (t.id === 'repAll') { UI.rep.all = t.checked; saveUI(); render(); return; }
+  if (t.id === 'repAuthor') { UI.rep.author = t.value.trim(); saveUI(); render(); return; }
+  if (t.id === 'repNote') { UI.rep.notes = UI.rep.notes || {}; const k = UI.rep.type + ':' + UI.rep.key; if (t.value.trim()) UI.rep.notes[k] = t.value; else delete UI.rep.notes[k]; saveUI(); render(); return; }
   if (t.dataset.cg) { const c = t.dataset.c, o = DB.cust[c] = DB.cust[c] || {}; o[t.dataset.cg] = t.type === 'checkbox' ? t.checked : t.value.trim(); dbSave('cust'); enrich(); clearTimeout(_cuT); _cuT = setTimeout(() => { if (srvOn()) api('putCust', { rows: custRows() }).then(() => toast('거래처 분류를 구글 시트에 저장했습니다')).catch(e => toast('구글 시트에 저장하지 못했습니다: ' + e.message)); }, 800); return; }
 });
 let _qT = null, _cuT = null;
