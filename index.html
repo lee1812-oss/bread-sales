@@ -441,7 +441,7 @@ function enrich() {
    유상분: pq(수량) · pc(원가) · pp(판매이익 = 공급가액 − 유상분 원가) / 무상분: fq · fc(원가) · fx(유형) */
 const FXT = [['', '미분류'], ['exch', '교환'], ['svc', '샘플·서비스'], ['promo', '덤·프로모션'], ['miss', '청구 누락 (수정 필요)'], ['done', '청구 누락 → 수정함']];
 const FXL = Object.fromEntries(FXT);
-const fxKey = r => 'fx|' + r.d + '|' + r.c + '|' + r.i;
+const fxKey = r => 'fx|' + r.d + '|' + r.c + '|' + r.i + (r.memo ? '|' + r.memo.slice(0, 40) : '');
 function splitFree() {
   const partC = new Map();
   R.forEach(r => {
@@ -1140,7 +1140,7 @@ function vData() {
     <div class="card"><h2>⬆ 이카운트 자료 올리기</h2>
       <div class="drop" id="drop" data-act="pick"><b>엑셀 파일을 여기에 끌어다 놓거나 눌러서 고르세요</b><div class="muted small" style="margin-top:6px">판매현황 · 품목등록 파일을 알아서 구분합니다 (여러 개 한꺼번에 가능 · .xlsx .xls .csv)</div></div>
       <div style="margin-top:12px;font-weight:700;font-size:13.5px">매주 올리는 방법</div>
-      <ol class="steps"><li>이카운트 → <b>영업관리 → 판매현황</b></li><li>기간을 <b>지난주 월~일</b>로 정하고, 집계 기준을 <b>일별 · 거래처별 · 품목별</b>로 조회</li><li>엑셀 내려받기 → 이 화면에 올리기</li></ol>
+      <ol class="steps"><li>이카운트 → <b>영업관리 → 판매현황</b></li><li>기간을 <b>지난주 월~일</b>로 정하고, 집계 기준을 <b>일별 · 거래처별 · 품목별</b>로 조회</li><li>(권장) 집계 항목에 <b>비고(적요)</b>도 넣기 — 교환·샘플을 따로 적은 줄이 합쳐지지 않고, 비고에 「교환」이 있으면 자동으로 교환으로 분류됩니다</li><li>엑셀 내려받기 → 이 화면에 올리기</li></ol>
       <div class="muted small" style="margin-top:6px;line-height:1.6">· 파일 제목줄의 기간(예: 2026/09/21 ~ 2026/09/27)에 해당하는 기존 자료는 새 파일로 <b>바뀝니다</b>. 같은 주를 다시 올려도 겹치지 않고, 이카운트에서 고친 전표도 다시 올리면 반영됩니다.<br>· 품목등록(품목구분·매입처)은 품목이 바뀌었을 때만 다시 올리면 됩니다.<br>· 자료는 <b>연결한 구글 시트</b>에 저장되어 어느 기기에서 열어도 같습니다 (공개 저장소에는 올라가지 않음). 백업 파일은 만일을 위해 가끔 내려받아 두세요.</div>
     </div>
     <div class="card"><h2>📦 저장된 자료 <small>${srvOn() ? '구글 시트' : '<span class="neg">구글 시트 연결 안 됨</span>'}</small></h2>
@@ -1177,7 +1177,7 @@ function parseSheet(aoa) {
 }
 function parseSales(aoa, hi, h, title) {
   const ix = { d: hdrIdx(h, ['일별', '일자', '판매일자', '날짜', '일자-No.', '전표일자']), c: hdrIdx(h, ['거래처별', '거래처명', '거래처']), i: hdrIdx(h, ['품목별', '품목명', '품목명(규격)', '품목']), q: hdrIdx(h, ['수량', '판매수량']),
-    cost: hdrIdx(h, ['매입단가', '원가', '원가금액', '매입금액']), amt: hdrIdx(h, ['공급가액']), tot: hdrIdx(h, ['판매합계', '합계', '합계금액']), p: hdrIdx(h, ['판매이익', '이익', '이익금액']), u: hdrIdx(h, ['단가']), memo: hdrIdx(h, ['전달사항', '적요', '비고']) };
+    cost: hdrIdx(h, ['매입단가', '원가', '원가금액', '매입금액']), amt: hdrIdx(h, ['공급가액']), tot: hdrIdx(h, ['판매합계', '합계', '합계금액']), p: hdrIdx(h, ['판매이익', '이익', '이익금액']), u: hdrIdx(h, ['단가']), memo: hdrIdx(h, ['전달사항', '적요', '비고']), memos: h.map((x, i) => /^(전달사항|적요|비고|품목비고|비고\(품목\)|품목적요|적요\(품목\))$/.test(x) ? i : -1).filter(i => i >= 0) };
   if (ix.d < 0) throw new Error('판매현황에 날짜(일별) 열이 없습니다 — 이카운트에서 「일별」을 집계 기준에 넣어 주세요');
   if (ix.c < 0 || ix.i < 0) throw new Error('거래처별 · 품목별 열이 모두 있어야 합니다');
   if (ix.cost < 0 && ix.p < 0) throw new Error('원가(매입단가) 또는 판매이익 열이 없어 이익을 계산할 수 없습니다');
@@ -1187,7 +1187,8 @@ function parseSales(aoa, hi, h, title) {
     if (!d || !c || !it) continue;   /* 소계(2026/10 계)·총합계·출력일시 줄은 건너뜀 */
     const amt = num(x[ix.amt]); let cost = ix.cost >= 0 ? num(x[ix.cost]) : NaN, p = ix.p >= 0 ? num(x[ix.p]) : NaN;
     if (isNaN(cost)) cost = amt - p; if (isNaN(p)) p = amt - cost;
-    const memo = ix.memo >= 0 ? String(x[ix.memo] == null ? '' : x[ix.memo]).replace(/ /g, ' ').trim() : '';
+    /* 전달사항·적요·비고 열을 모두 읽어 이어 붙임 — 줄 비고(예: 「3박스 교환」)로 교환·샘플을 자동 분류 */
+    const memo = [...new Set(ix.memos.map(j => String(x[j] == null ? '' : x[j]).replace(/\u00a0/g, ' ').trim()).filter(Boolean))].join(' / ');
     const row = { d, c, i: it, q: num(x[ix.q]), cost, amt, tot: ix.tot >= 0 ? num(x[ix.tot]) : amt, p, memo }; if (ix.u >= 0) row.u = num(x[ix.u]); rows.push(row);
   }
   if (!rows.length) throw new Error('읽을 판매 줄이 없습니다');
